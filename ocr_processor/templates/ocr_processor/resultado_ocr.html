@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Resultado del OCR</title>
+</head>
+<body>
+    <h1>Resultado del OCR</h1>
+    {% if nem_value %}
+        <p>RUT: {{ rut_value }}</p>
+        <p>NEM: {{ nem_value }}</p>
+        <p>Notas extraídas:</p>
+        <pre>{{ texto }}</pre>
+    {% else %}
+        <p>No se pudo extraer la información del PDF.</p>
+    {% endif %}
+    <br>
+    <a href="{% url 'upload_pdf' %}">Subir otro PDF</a>
+    <hr>
+    {% if raw_text %}
+    <h3>Texto OCR Crudo:</h3>
+    <pre>{{ raw_text }}</pre>
+    {% endif %}
+</body>
+</html>
