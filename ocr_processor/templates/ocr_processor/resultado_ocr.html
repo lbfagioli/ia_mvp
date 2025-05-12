@@ -1,24 +1,41 @@
+{% load static %}
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-    <title>Resultado del OCR</title>
+  <meta charset="UTF-8">
+  <title>Resultados del OCR</title>
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
 </head>
 <body>
-    <h1>Resultado del OCR</h1>
-    {% if nem_value %}
-        <p>RUT: {{ rut_value }}</p>
-        <p>NEM: {{ nem_value }}</p>
-        <p>Notas extraídas:</p>
-        <pre>{{ texto }}</pre>
+  <div class="container">
+    <h1>Resultados del OCR</h1>
+
+    {% if resultados %}
+      {% for r in resultados %}
+        <div class="resultado">
+          <h3>Archivo: {{ r.filename }}</h3>
+
+          {% if r.rut and r.nem %}
+            <p><strong>RUT:</strong> {{ r.rut }}</p>
+            <p><strong>NEM:</strong> {{ r.nem|floatformat:2 }}</p>
+            <p><strong>Notas:</strong> {{ r.grades|join:", " }}</p>
+          {% else %}
+            <p class="error">No se pudo extraer información.</p>
+          {% endif %}
+
+          {% if r.full_text %}
+            <details>
+              <summary>Ver texto OCR crudo</summary>
+              <pre>{{ r.full_text }}</pre>
+            </details>
+          {% endif %}
+        </div>
+      {% endfor %}
     {% else %}
-        <p>No se pudo extraer la información del PDF.</p>
+      <p class="empty">No se procesaron archivos.</p>
     {% endif %}
-    <br>
-    <a href="{% url 'upload_pdf' %}">Subir otro PDF</a>
-    <hr>
-    {% if raw_text %}
-    <h3>Texto OCR Crudo:</h3>
-    <pre>{{ raw_text }}</pre>
-    {% endif %}
+
+    <a class="btn volver" href="{% url 'upload_pdf' %}">Subir más archivos</a>
+  </div>
 </body>
 </html>

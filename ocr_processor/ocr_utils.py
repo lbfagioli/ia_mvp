@@ -4,6 +4,8 @@ from pdf2image import convert_from_path
 from unstructured.partition import pdf
 import pytesseract
 import numpy as np
+from PIL import Image
+
 
 def calculate_NEM(grades):
     num_grades = [float(grade) for grade in grades]

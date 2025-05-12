@@ -1,14 +1,24 @@
+{% load static %}
+
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-    <title>Subir PDF para OCR</title>
+  <meta charset="UTF-8">
+  <title>Subir archivos para OCR</title>
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
 </head>
 <body>
-    <h1>Subir archivo PDF</h1>
+  <div class="container">
+    <h1>Subir archivos para OCR</h1>
     <form method="post" enctype="multipart/form-data">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit">Procesar PDF</button>
+      {% csrf_token %}
+      {# Aquí no usamos form.as_p, solo el input de ficheros #}
+      <div class="form-group">
+        <label for="id_files">Selecciona uno o más archivos (PDF, JPG, PNG):</label>
+        <input id="id_files" name="pdf_files" type="file" multiple required>
+      </div>
+      <button type="submit" class="btn">Procesar archivos</button>
     </form>
+  </div>
 </body>
 </html>

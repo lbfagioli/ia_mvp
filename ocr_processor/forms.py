@@ -1,4 +1,4 @@
 from django import forms
 
 class UploadPDFForm(forms.Form):
-    pdf_file = forms.FileField(label='Selecciona un archivo PDF')
+    dummy = forms.CharField(widget=forms.HiddenInput(), required=False)
