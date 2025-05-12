@@ -3,22 +3,67 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Subir archivos para OCR</title>
-  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+  <link rel="stylesheet" href="{% static 'css/style.css' %}" />
 </head>
 <body>
   <div class="container">
     <h1>Subir archivos para OCR</h1>
     <form method="post" enctype="multipart/form-data">
       {% csrf_token %}
-      {# Aquí no usamos form.as_p, solo el input de ficheros #}
+
       <div class="form-group">
         <label for="id_files">Selecciona uno o más archivos (PDF, JPG, PNG):</label>
-        <input id="id_files" name="pdf_files" type="file" multiple required>
+        <input
+          id="id_files"
+          name="ocr_files"
+          type="file"
+          multiple
+          required
+          onchange="buildTypeSelectors()"
+        />
       </div>
+
+      <div id="per-file-types">
+        {# Aquí se inyectarán los selects #}
+      </div>
+
       <button type="submit" class="btn">Procesar archivos</button>
     </form>
   </div>
+
+  <script>
+    const MODES = [
+      { value: "1", label: "Unidos manualmente" },
+      { value: "2", label: "Notas por año" },
+      { value: "3", label: "Concentración de notas" },
+    ];
+    function buildTypeSelectors() {
+      const input = document.getElementById("id_files");
+      const container = document.getElementById("per-file-types");
+      container.innerHTML = "";  // limpia
+      Array.from(input.files).forEach((file, idx) => {
+        const row = document.createElement("div");
+        row.className = "file-row";
+        row.innerHTML = `
+          <span>${file.name}</span>
+          <select name="file_mode_${idx}" required>
+            ${MODES.map(
+              (m) => `<option value="${m.value}">${m.label}</option>`
+            ).join("")}
+          </select>
+          <input type="hidden" name="file_index_${idx}" value="${idx}" />
+        `;
+        container.appendChild(row);
+      });
+      // oculto con count
+      const count = document.createElement("input");
+      count.type = "hidden";
+      count.name = "files_count";
+      count.value = input.files.length;
+      container.appendChild(count);
+    }
+  </script>
 </body>
 </html>
