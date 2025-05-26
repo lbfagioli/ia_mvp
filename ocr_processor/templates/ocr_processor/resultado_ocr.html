@@ -5,37 +5,87 @@
   <meta charset="UTF-8">
   <title>Resultados del OCR</title>
   <link rel="stylesheet" href="{% static 'css/style.css' %}">
+  <style>
+    pre.logs {
+      background: #f8f8f8;
+      border: 1px solid #ccc;
+      padding: 10px;
+      max-height: 400px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      margin-top: 20px;
+      font-family: monospace;
+      color: #333;
+      display: none; /* oculto por defecto */
+    }
+    .btn {
+      display: inline-block;
+      padding: 8px 16px;
+      background-color: #007bff;
+      color: white;
+      text-decoration: none;
+      border-radius: 4px;
+      margin-top: 10px;
+      cursor: pointer;
+      user-select: none;
+      border: none;
+      font-size: 1rem;
+    }
+    .btn:hover {
+      background-color: #0056b3;
+    }
+    .btn-secondary {
+      background-color: #6c757d;
+    }
+    .btn-secondary:hover {
+      background-color: #5a6268;
+    }
+    .error {
+      color: red;
+      font-weight: bold;
+    }
+  </style>
 </head>
 <body>
   <div class="container">
-    <h1>Resultados del OCR</h1>
+    <h1>Resultados</h1>
 
-    {% if resultados %}
-      {% for r in resultados %}
-        <div class="resultado">
-          <h3>Archivo: {{ r.filename }}</h3>
-
-          {% if r.rut and r.nem %}
-            <p><strong>RUT:</strong> {{ r.rut }}</p>
-            <p><strong>NEM:</strong> {{ r.nem|floatformat:2 }}</p>
-            <p><strong>Notas:</strong> {{ r.grades|join:", " }}</p>
-          {% else %}
-            <p class="error">No se pudo extraer información.</p>
-          {% endif %}
-
-          {% if r.full_text %}
-            <details>
-              <summary>Ver texto OCR crudo</summary>
-              <pre>{{ r.full_text }}</pre>
-            </details>
-          {% endif %}
-        </div>
-      {% endfor %}
+    {% if error %}
+      <p class="error">{{ error }}</p>
     {% else %}
-      <p class="empty">No se procesaron archivos.</p>
+      <p><strong>Total de documentos subidos:</strong> {{ total_docs }}</p>
+      <p><strong>Procesados correctamente:</strong> {{ procesados_ok }}</p>
+      <p><strong>Con error:</strong> {{ errores }}</p>
+
+      {% if csv_url %}
+        <a href="{{ csv_url }}" download class="btn btn-primary">Descargar CSV con resultados</a>
+      {% endif %}
+
+      <h2>Logs del procesamiento:</h2>
+      <button id="toggleLogsBtn" class="btn btn-secondary">Mostrar/Ocultar Logs</button>
+      <pre class="logs" id="logsBlock">
+{% for log in logs %}
+{{ log }}
+{% endfor %}
+      </pre>
     {% endif %}
 
-    <a class="btn volver" href="{% url 'upload_pdf' %}">Subir más archivos</a>
+    <a class="btn btn-secondary" href="{% url 'upload_pdf' %}">Volver al inicio</a>
   </div>
+
+  <script>
+    const toggleBtn = document.getElementById('toggleLogsBtn');
+    const logsBlock = document.getElementById('logsBlock');
+
+    toggleBtn.addEventListener('click', () => {
+      if (logsBlock.style.display === 'none' || logsBlock.style.display === '') {
+        logsBlock.style.display = 'block';
+        toggleBtn.textContent = 'Ocultar Logs';
+      } else {
+        logsBlock.style.display = 'none';
+        toggleBtn.textContent = 'Mostrar Logs';
+      }
+    });
+  </script>
 </body>
 </html>

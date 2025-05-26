@@ -4,66 +4,82 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>Subir archivos para OCR</title>
+  <title>Calculador de NEM</title>
   <link rel="stylesheet" href="{% static 'css/style.css' %}" />
+  <style>
+    #progress-container {
+      display: none;
+      margin-top: 20px;
+      width: 100%;
+      background: #eee;
+      border-radius: 10px;
+      overflow: hidden;
+      height: 20px;
+    }
+    #progress-bar {
+      height: 20px;
+      width: 0%;
+      background: #4caf50;
+      transition: width 0.3s ease;
+    }
+    #progress-text {
+      margin-top: 5px;
+      font-weight: bold;
+      text-align: center;
+      color: #333;
+    }
+  </style>
 </head>
 <body>
   <div class="container">
-    <h1>Subir archivos para OCR</h1>
-    <form method="post" enctype="multipart/form-data">
+    <h1>Subir carpeta para calcular NEM</h1>
+    <form id="upload-form" method="post" enctype="multipart/form-data">
       {% csrf_token %}
 
       <div class="form-group">
-        <label for="id_files">Selecciona uno o más archivos (PDF, JPG, PNG):</label>
+        <label for="id_files">Selecciona una carpeta:</label><br><br>
         <input
           id="id_files"
           name="ocr_files"
           type="file"
           multiple
+          webkitdirectory
           required
-          onchange="buildTypeSelectors()"
         />
       </div>
-
-      <div id="per-file-types">
-        {# Aquí se inyectarán los selects #}
-      </div>
-
-      <button type="submit" class="btn">Procesar archivos</button>
+      
+      <button type="submit" class="btn">Procesar carpeta</button>
     </form>
+
+    <div id="progress-container">
+      <div id="progress-bar"></div>
+      <div id="progress-text">Procesando...</div>
+    </div>
   </div>
 
   <script>
-    const MODES = [
-      { value: "1", label: "Unidos manualmente" },
-      { value: "2", label: "Notas por año" },
-      { value: "3", label: "Concentración de notas" },
-    ];
-    function buildTypeSelectors() {
-      const input = document.getElementById("id_files");
-      const container = document.getElementById("per-file-types");
-      container.innerHTML = "";  // limpia
-      Array.from(input.files).forEach((file, idx) => {
-        const row = document.createElement("div");
-        row.className = "file-row";
-        row.innerHTML = `
-          <span>${file.name}</span>
-          <select name="file_mode_${idx}" required>
-            ${MODES.map(
-              (m) => `<option value="${m.value}">${m.label}</option>`
-            ).join("")}
-          </select>
-          <input type="hidden" name="file_index_${idx}" value="${idx}" />
-        `;
-        container.appendChild(row);
-      });
-      // oculto con count
-      const count = document.createElement("input");
-      count.type = "hidden";
-      count.name = "files_count";
-      count.value = input.files.length;
-      container.appendChild(count);
-    }
+    const form = document.getElementById('upload-form');
+    const progressContainer = document.getElementById('progress-container');
+    const progressBar = document.getElementById('progress-bar');
+    const progressText = document.getElementById('progress-text');
+
+    form.addEventListener('submit', () => {
+      // Mostrar barra
+      progressContainer.style.display = 'block';
+      progressBar.style.width = '0%';
+      progressText.textContent = 'Procesando...';
+
+      // Animar barra simulada (sube al 90% en 5 segundos)
+      let width = 0;
+      const interval = setInterval(() => {
+        if (width >= 90) {
+          clearInterval(interval);
+        } else {
+          width += 2;
+          progressBar.style.width = width + '%';
+        }
+      }, 100);
+    });
   </script>
 </body>
 </html>

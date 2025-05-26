@@ -11,15 +11,14 @@ body {
 h1 { text-align: center; color: #333; }
 .form-group { margin-bottom: 1em; }
 .btn {
-  background: #0073e6;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 5px;
-  cursor: pointer;
+  display: inline-block;
+  padding: 10px 16px;
+  margin-top: 20px;
   text-decoration: none;
+  border-radius: 5px;
+  font-weight: bold;
+  text-align: center;
 }
-.btn:hover { background: #005bb5; }
 .resultado {
   background: #fff;
   border: 1px solid #ddd;
@@ -29,3 +28,17 @@ h1 { text-align: center; color: #333; }
 }
 .error { color: #d9534f; font-weight: bold; }
 .volver { text-align: center; margin-top: 30px; display: block; }
+.btn-primary {
+  background-color: #007bff;
+  color: white;
+}
+.btn-primary:hover { background: #005bb5; }
+
+.btn.btn-secondary {
+  background-color: #6c757d !important;
+  color: white !important;
+}
+
+.btn-secondary:hover {
+  background-color: #5a6268;
+}
