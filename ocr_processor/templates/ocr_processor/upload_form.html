@@ -1,10 +1,9 @@
 {% load static %}
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>Calculador de NEM</title>
+  <title>Subir carpeta para OCR</title>
   <link rel="stylesheet" href="{% static 'css/style.css' %}" />
   <style>
     #progress-container {
@@ -31,13 +30,18 @@
   </style>
 </head>
 <body>
+  <header>
+    <div class="header-content">
+      <h2>UANDES - Procesador OCR</h2>
+    </div>
+  </header>
+
   <div class="container">
-    <h1>Subir carpeta para calcular NEM</h1>
+    <h1>Subir carpeta para OCR</h1>
     <form id="upload-form" method="post" enctype="multipart/form-data">
       {% csrf_token %}
-
       <div class="form-group">
-        <label for="id_files">Selecciona una carpeta:</label><br><br>
+        <label for="id_files">Selecciona una carpeta con archivos (PDF, JPG, PNG):</label>
         <input
           id="id_files"
           name="ocr_files"
@@ -47,7 +51,7 @@
           required
         />
       </div>
-      
+
       <button type="submit" class="btn">Procesar carpeta</button>
     </form>
 
@@ -64,12 +68,10 @@
     const progressText = document.getElementById('progress-text');
 
     form.addEventListener('submit', () => {
-      // Mostrar barra
       progressContainer.style.display = 'block';
       progressBar.style.width = '0%';
       progressText.textContent = 'Procesando...';
 
-      // Animar barra simulada (sube al 90% en 5 segundos)
       let width = 0;
       const interval = setInterval(() => {
         if (width >= 90) {

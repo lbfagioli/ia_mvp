@@ -16,30 +16,17 @@
       margin-top: 20px;
       font-family: monospace;
       color: #333;
-      display: none; /* oculto por defecto */
+      display: none;
     }
-    .btn {
-      display: inline-block;
-      padding: 8px 16px;
-      background-color: #007bff;
-      color: white;
-      text-decoration: none;
-      border-radius: 4px;
-      margin-top: 10px;
-      cursor: pointer;
-      user-select: none;
-      border: none;
-      font-size: 1rem;
-    }
-    .btn:hover {
-      background-color: #0056b3;
-    }
+
     .btn-secondary {
-      background-color: #6c757d;
+      background-color: var(--uandes-medium-gray);
     }
+
     .btn-secondary:hover {
       background-color: #5a6268;
     }
+
     .error {
       color: red;
       font-weight: bold;
@@ -47,6 +34,12 @@
   </style>
 </head>
 <body>
+  <header>
+    <div class="header-content">
+      <h2>UANDES - Procesador OCR</h2>
+    </div>
+  </header>
+
   <div class="container">
     <h1>Resultados</h1>
 
@@ -58,10 +51,10 @@
       <p><strong>Con error:</strong> {{ errores }}</p>
 
       {% if csv_url %}
-        <a href="{{ csv_url }}" download class="btn btn-primary">Descargar CSV con resultados</a>
+        <a href="{{ csv_url }}" download class="btn">Descargar CSV con resultados</a>
       {% endif %}
 
-      <h2>Logs del procesamiento:</h2>
+      <h3>Logs del procesamiento:</h3>
       <button id="toggleLogsBtn" class="btn btn-secondary">Mostrar/Ocultar Logs</button>
       <pre class="logs" id="logsBlock">
 {% for log in logs %}
@@ -70,14 +63,14 @@
       </pre>
     {% endif %}
 
-    <a class="btn btn-secondary" href="{% url 'upload_pdf' %}">Volver al inicio</a>
+    <a class="btn btn-secondary volver" href="{% url 'upload_pdf' %}">Volver al inicio</a>
   </div>
 
   <script>
     const toggleBtn = document.getElementById('toggleLogsBtn');
     const logsBlock = document.getElementById('logsBlock');
 
-    toggleBtn.addEventListener('click', () => {
+    toggleBtn?.addEventListener('click', () => {
       if (logsBlock.style.display === 'none' || logsBlock.style.display === '') {
         logsBlock.style.display = 'block';
         toggleBtn.textContent = 'Ocultar Logs';
