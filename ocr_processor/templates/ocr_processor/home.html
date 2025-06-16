@@ -1,0 +1,88 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>MVP Grupo 2 - IA Aplicada</title>
+  <link rel="stylesheet" href="{% static 'css/style.css' %}" />
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #fff;
+      color: #b30000; /* rojo oscuro */
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .container {
+      max-width: 900px;
+      margin: 4rem auto;
+      background: #fff;
+      padding: 2rem 3rem;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(168, 0, 0, 0.15);
+      border: 2px solid #b30000; /* borde rojo */
+    }
+    header h1 {
+      font-weight: 700;
+      color: #b30000; /* rojo fuerte */
+      margin-bottom: 0.25rem;
+      font-size: 2.5rem;
+      text-align: center;
+    }
+    header p.subtitle {
+      font-weight: 600;
+      color: #cc0000; /* rojo vivo */
+      margin-bottom: 2rem;
+      font-size: 1.3rem;
+      text-align: center;
+    }
+    section h2 {
+      color: #b30000; /* rojo fuerte */
+      margin-top: 1.5rem;
+      margin-bottom: 0.75rem;
+      font-size: 1.6rem;
+    }
+    section ul {
+      list-style: disc inside;
+      font-size: 1.1rem;
+      line-height: 1.6;
+      margin-left: 1rem;
+      color: #b30000;
+    }
+    section ul li {
+      margin: 0.5rem 0;
+    }
+    a {
+      color: #cc0000;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  {% include "ocr_processor/navbar.html" %}
+
+  <div class="container">
+    <h1>Propuesta de MVP - Grupo 2 IA Aplicada</h1>
+    <p class="subtitle">Crear una herramienta para priorizar automáticamente a los postulantes.</p>
+
+    <section>
+      <h2>Aplicación web:</h2>
+      <ul>
+        <li><strong>Módulo de cálculo de puntajes deportivos.</strong></li>
+        <li><strong>Módulo de conversión de notas internacionales.</strong></li>
+      </ul>
+
+      <h2>Uso real:</h2>
+      <ul>
+        <li>Entregar carpeta con CVs y notas NEM para obtener cálculo de puntajes o notas ordenados por prioridad.</li>
+      </ul>
+    </section>
+  </div>
+</body>
+</html>

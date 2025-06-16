@@ -48,11 +48,18 @@ def extract_details_auto(text_pages):
     }
 
 def procesar_pdfs_en_carpeta(input_folder):
-    pdf_files = glob(os.path.join(input_folder, '*.pdf'))
+    # PDFs en la raíz
+    all_pdfs = glob(os.path.join(input_folder, '*.pdf'))
+    pdf_files_root = [f for f in all_pdfs if os.path.dirname(f) == input_folder]
+    pdf_files_all = glob(os.path.join(input_folder, '**', '*.pdf'), recursive=True)
+
+    # Detectar si hay archivos en subcarpetas
+    pdf_files_subcarpetas = [f for f in pdf_files_all if os.path.dirname(f) != input_folder]
+
     resultados = []
     logs = []
 
-    for pdf_file in pdf_files:
+    for pdf_file in pdf_files_root:
         try:
             elements = partition_pdf(pdf_file)
             pages = {}
@@ -74,6 +81,9 @@ def procesar_pdfs_en_carpeta(input_folder):
             logs.append(f"✅ {details['rut']} → NEM: {nem}")
         except Exception as e:
             logs.append(f"❌ Error procesando {os.path.basename(pdf_file)}: {e}")
+
+    if pdf_files_subcarpetas:
+        logs.append(f"⚠️ Se ignoraron {len(pdf_files_subcarpetas)} archivos PDF que estaban en subcarpetas.")
 
     return resultados, logs
 
