@@ -7,3 +7,7 @@ How to Run app:
 
 4 css in production:
 - ´python3 manage.py collectstatic´
+
+
+IMPORTANT:
+In repo, set a .env file with variables described.

@@ -80,3 +80,6 @@ Desktop.ini
 # Temporary files
 *~
 *.swp
+
+# Env File
+.env

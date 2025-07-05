@@ -1,14 +1,29 @@
 import re
-from glob import glob
 import os
-import pdfplumber
-from unstructured.partition.pdf import partition_pdf
-import pandas as pd
-import re
-from typing import Union, Pattern
-
 import nltk
+import pdfplumber
+import pandas as pd
+from glob import glob
+from tqdm import tqdm
+from openai import OpenAI
+from typing import Union, Pattern
+from unstructured.partition.pdf import partition_pdf
+from dotenv import load_dotenv
+from .constants import OCRInputFormats
+
+tqdm.pandas()
 nltk.download('averaged_perceptron_tagger')
+
+# Load environment variables from .env file
+load_dotenv()
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
+OPENAI_ENDPOINT = os.getenv('OPENAI_ENDPOINT')
+
+def _set_openai_client():
+    return OpenAI(
+        base_url=OPENAI_ENDPOINT,
+        api_key=OPENAI_API_KEY
+    )
 
 def calculate_NEM(grades):
     grades = [float(g) for g in grades if 1.0 <= float(g) <= 7.0]
@@ -101,22 +116,16 @@ def list_pdf_files(input_folder):
     return files
 
 def group_by_rut_and_id(pdf_paths):
-    """
-    Agrupa rutas en un dict:
-    { (rut, post_id): {'cv': path, 'notasmedia': path} }
-    """
     grupos = {}
     for path in pdf_paths:
         fname = os.path.basename(path)
-        m = FILENAME_PATTERN.match(fname)
+        m = OCRInputFormats.FILENAME_PATTERN.value.match(fname)
         if not m:
-            print(f"[group] Ignorando archivo con nombre inválido: {fname}")
             continue
-        rut    = m.group('rut').replace('.', '')
+        rut     = m.group('rut').replace('.', '')
         post_id = m.group('id')
-        tipo   = m.group('tipo').lower()
-        key = (rut, post_id)
-        grupos.setdefault(key, {})[tipo] = path
+        tipo    = m.group('tipo').lower()
+        grupos.setdefault((rut, post_id), {})[tipo] = path
     return grupos
 
 def extract_text_pages(pdf_path, first_page_only=False):
@@ -219,25 +228,107 @@ def count_section_entries(
     start_pattern: Union[str, Pattern],
     end_pattern: Union[str, Pattern],
     max_count: int = 4,
-    year_pattern: Pattern = YearPat
+    year_pattern: Pattern = OCRInputFormats.YEAR_RE.value
 ) -> int:
-    """
-    Usa subfunciones para contar líneas con años en una sección del texto,
-    luego aplica multiplicador y máximo permitido.
-    """
-    start_pat = compile_pattern(start_pattern, flags=re.IGNORECASE | re.DOTALL)
-    end_pat = compile_pattern(end_pattern, flags=re.IGNORECASE)
-    section = extract_section(text, start_pat, end_pat)
-    count = count_year_lines(section, year_pattern)
-    return min(count, max_count) * point_mult
+    start_pat = re.compile(start_pattern, flags=re.IGNORECASE | re.DOTALL)
+    end_pat   = re.compile(end_pattern, flags=re.IGNORECASE)
+    sec       = extract_section(text, start_pat, end_pat)
+    return min(sum(1 for line in sec.splitlines() if year_pattern.search(line)), max_count) * point_mult
 
 
 def exportar_resultados_csv(df: pd.DataFrame, output_csv: str):
     df.to_csv(output_csv, index=False, encoding='utf-8')
     print(f"\n📄 CSV exportado a: {output_csv}")
 
+### --------------- OPENAI --------------- ###
+def extract_section_7(text: str) -> str:
+    start = OCRInputFormats.SECTION_7_START.value.search(text)
+    if not start:
+        return ""
+    tail = text[start.end():]
+    end = OCRInputFormats.SECTION_7_END.value.search(tail)
+    return tail[:end.start()] if end else tail
+
+def filter_interest_lines(text: str) -> str:
+    lines = text.splitlines()
+    year_re = OCRInputFormats.YEAR_RE.value
+    place_re = OCRInputFormats.PLACE_RE.value
+
+    return "\n".join([
+        line.strip() for line in lines
+        if year_re.search(line) or place_re.search(line)
+    ])
+
+### --------------- Other Tournaments --------------- ###
+def extract_tournament_points(chat_context: str, client: OpenAI) -> int:
+    instruction = (
+        "Del siguiente texto extrae únicamente las participaciones en torneos deportivos que se mencionen explícitamente.\n"
+        "- No incluyas premios, reconocimientos o logros como 'mejor jugador' o 'capitán'.\n"
+        "- Solo cuenta la cantidad de torneos en los que el estudiante haya participado.\n"
+        "- No repitas torneos si ya fueron mencionados.\n"
+        "- Devuelve únicamente el número total de torneos.\n"
+        "- Si no hay torneos, responde con 0.\n"
+        "Formato de salida: solo el número, sin comillas ni texto adicional.\n\n"
+        "Texto:\n" + chat_context
+    )
+
+    try:
+        response = client.chat.completions.create(
+            model="openai/gpt-4.1",
+            temperature=0,
+            messages=[
+                {"role": "system", "content": "Eres un extractor preciso de participaciones en torneos deportivos y calculas puntajes."},
+                {"role": "user", "content": instruction}
+            ]
+        )
+        raw_output = response.choices[0].message.content.strip()
+        print("🔎 Conteo retornado por modelo:", raw_output)
+        return int(raw_output)
+    except Exception as e:
+        print("❌ Error extrayendo torneos:", e)
+        return 0
+
+def contar_puntaje_other_from_count(n: int) -> int:
+    return min(n * 5, 90)  # 5 puntos por participación, máximo 90
+
+### --------------- Awards --------------- ###
+def extract_recognition_count(chat_context: str, client: OpenAI) -> int:
+    instruction = (
+        "Del siguiente texto, extrae únicamente los reconocimientos o distinciones personales vinculadas al deporte "
+        "(como 'capitán', 'mejor jugador', 'destacado', 'fair play', etc). "
+        "- No incluyas participaciones en torneos, lugares obtenidos, ni años.\n"
+        "- No repitas reconocimientos si ya fueron mencionados.\n"
+        "- Devuelve únicamente la cantidad total de reconocimientos distintos.\n"
+        "- Si no hay reconocimientos, responde con 0.\n"
+        "Formato de salida: solo el número, sin comillas ni texto adicional.\n\n"
+        "Texto:\n" + chat_context
+    )
+    try:
+        response = client.chat.completions.create(
+            model="openai/gpt-4.1",
+            temperature=0,
+            messages=[
+                {"role": "system", "content": "Eres un extractor preciso de reconocimientos personales en el deporte."},
+                {"role": "user", "content": instruction}
+            ]
+        )
+        raw_output = response.choices[0].message.content.strip()
+        print("🔎 Reconocimientos retornados por modelo:", raw_output)
+        return int(raw_output)
+    except Exception as e:
+        print("❌ Error extrayendo torneos:", e)
+        return 0
+
+def filter_all_lines(text: str) -> str:
+    return "\n".join([line.strip() for line in text.splitlines() if line.strip()])
+
+def contar_puntaje_reconocimientos(n: int) -> int:
+    return min(n * 1, 20)  # 1 punto por reconocimiento, máximo 20
+
+### --------------- MAIN LOOP --------------- ###
 def main_loop(base_path, output_csv_path):
     df = tabular_folder(base_path)
+    model = _set_openai_client()
 
     for i in range(5):
         print(repr(df['cv_text'][i]))
@@ -299,6 +390,30 @@ def main_loop(base_path, output_csv_path):
             ),
             end_pattern=r'\*Si el estudiante.*?dejar en blanco\.|\n7\.',
             max_count=90,
+        )
+    )
+    
+    # 6) Otros Torneos
+    df["other_tournaments"] = df["cv_text"].progress_apply(
+        lambda txt: contar_puntaje_other_from_count(
+            extract_tournament_points(
+                filter_interest_lines(
+                    extract_section_7(txt)
+                ),
+                client=model
+            )
+        )
+    )
+
+    # Premios y menciones obtenidos
+    df["recognitions"] = df["cv_text"].progress_apply(
+        lambda txt: contar_puntaje_reconocimientos(
+            extract_recognition_count(
+                filter_all_lines(
+                    extract_section_7(txt)
+                ),
+                client=model
+            )
         )
     )
 
