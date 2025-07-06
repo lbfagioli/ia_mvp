@@ -365,7 +365,7 @@
 
   <div class="container">
     <h1>Subir carpeta con certificados de<br>notas extranjeras</h1>
-    
+
     <div class="form-wrapper">
       <form id="upload-form" method="post" enctype="multipart/form-data">
         {% csrf_token %}
@@ -388,25 +388,15 @@
         </div>
         <button type="submit" class="btn">Procesar certificados</button>
       </form>
-
-      <div id="progress-container">
-        <div id="progress-bar"></div>
-        <div id="progress-text">Procesando...</div>
-        <div id="loading-text">Cargando...</div>
-      </div>
     </div>
   </div>
 
   <script>
     const form = document.getElementById('upload-form');
     const input = document.getElementById('id_files');
-    const progressContainer = document.getElementById('progress-container');
-    const progressBar = document.getElementById('progress-bar');
-    const progressText = document.getElementById('progress-text');
     const loadingOverlay = document.getElementById('loadingOverlay');
 
-    // File input change handler
-    input.addEventListener('change', function() {
+    input.addEventListener('change', function () {
       const files = this.files;
       const fileUploadText = document.querySelector('.file-upload-text');
       if (files.length > 0) {
@@ -417,50 +407,8 @@
     });
 
     form.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const files = input.files;
-      const totalFiles = files.length;
-      
-      if (totalFiles === 0) {
-        alert("Debes seleccionar al menos un archivo.");
-        return;
-      }
-
-      // Show loading overlay initially
+      // Show spinner overlay on submit
       loadingOverlay.classList.add('show');
-      
-      // After a short delay, show the progress bar
-      setTimeout(() => {
-        loadingOverlay.classList.remove('show');
-        progressContainer.style.display = 'block';
-        progressBar.style.width = '0%';
-        progressText.textContent = 'Iniciando procesamiento internacional...';
-        document.getElementById('loading-text').textContent = 'Preparando certificados...';
-      }, 1000);
-
-      let current = 0;
-      const maxPercent = 90;
-
-      const interval = setInterval(() => {
-        current += 1;
-        const percent = Math.min((current / totalFiles) * maxPercent, maxPercent);
-        progressBar.style.width = percent + '%';
-        progressText.textContent = `Procesando certificado ${current} de ${totalFiles}...`;
-        
-        if (current >= totalFiles) {
-          clearInterval(interval);
-          progressBar.style.width = maxPercent + '%';
-          progressText.textContent = 'Enviando certificados al servidor...';
-          document.getElementById('loading-text').textContent = 'Finalizando conversión internacional...';
-          
-          setTimeout(() => {
-            progressBar.style.width = '100%';
-            progressText.textContent = 'Completado';
-            document.getElementById('loading-text').textContent = 'Redirigiendo...';
-            setTimeout(() => form.submit(), 500);
-          }, 300);
-        }
-      }, 200);
     });
   </script>
 </body>

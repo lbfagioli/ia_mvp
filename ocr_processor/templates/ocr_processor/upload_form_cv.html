@@ -6,7 +6,7 @@
   <title>Subir carpeta para OCR</title>
   <link rel="stylesheet" href="{% static 'css/style.css' %}" />
   <style>
-    :root {
+        :root {
       --primary-red: #dc2626;
       --secondary-red: #ef4444;
       --dark-red: #991b1b;
@@ -373,18 +373,18 @@
 </head>
 <body>
   {% include "ocr_processor/navbar.html" %}
-  
+
   <!-- Loading Overlay -->
   <div class="loading-overlay" id="loadingOverlay">
     <div>
       <div class="spinner"></div>
-      <div class="loading-spinner-text">Procesando documentos deportivos...</div>
+      <div class="loading-spinner-text">Procesando CV deportivos...</div>
     </div>
   </div>
 
   <div class="container">
-    <h1>Subir carpeta con PDFs de<br>notas y curriculums deportivos</h1>
-    
+    <h1>Subir carpeta con PDFs de<br>notas de enseñanza media</h1>
+
     <div class="form-wrapper">
       <div class="sports-info">
         <h3>🏆 Documentos Deportivos</h3>
@@ -424,110 +424,24 @@
   </div>
 
   <script>
-    (function(){
-      const form = document.getElementById('upload-form');
-      const input = document.getElementById('id_files');
-      const progressCont = document.getElementById('progress-container');
-      const progressBar = document.getElementById('progress-bar');
-      const progressText = document.getElementById('progress-text');
-      const loadingText = document.getElementById('loading-text');
-      const errorMessage = document.getElementById('error-message');
-      const loadingOverlay = document.getElementById('loadingOverlay');
-      const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    const form = document.getElementById('upload-form');
+    const input = document.getElementById('id_files');
+    const loadingOverlay = document.getElementById('loadingOverlay');
 
-      // File input change handler
-      input.addEventListener('change', function() {
-        const files = this.files;
-        const fileUploadText = document.querySelector('.file-upload-text');
-        if (files.length > 0) {
-          fileUploadText.textContent = `${files.length} documentos deportivos seleccionados`;
-          fileUploadText.style.color = 'var(--success-green)';
-          fileUploadText.style.fontWeight = '600';
-        }
-      });
+    input.addEventListener('change', function () {
+      const files = this.files;
+      const fileUploadText = document.querySelector('.file-upload-text');
+      if (files.length > 0) {
+        fileUploadText.textContent = `${files.length} archivos seleccionados`;
+        fileUploadText.style.color = 'var(--success-green)';
+        fileUploadText.style.fontWeight = '600';
+      }
+    });
 
-      form.addEventListener('submit', e => {
-        e.preventDefault();
-        errorMessage.style.display = 'none';
-        
-        // Show loading overlay initially
-        loadingOverlay.classList.add('show');
-        
-        // After a short delay, show the progress bar
-        setTimeout(() => {
-          loadingOverlay.classList.remove('show');
-          progressCont.style.display = 'block';
-          progressBar.style.width = '0%';
-          progressText.textContent = '0%';
-          loadingText.textContent = 'Iniciando procesamiento deportivo...';
-        }, 1000);
-
-        // Preparamos FormData
-        const files = input.files;
-        if (!files.length) {
-          errorMessage.textContent = 'Selecciona al menos un archivo.';
-          errorMessage.style.display = 'block';
-          progressCont.style.display = 'none';
-          loadingOverlay.classList.remove('show');
-          return;
-        }
-
-        const fd = new FormData();
-        for (let f of files) fd.append('ocr_files', f);
-
-        // Creamos y configuramos el XHR
-        const xhr = new XMLHttpRequest();
-        xhr.open('POST', form.action, true);
-        xhr.setRequestHeader('X-CSRFToken', csrfToken);
-        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-
-        // **1) Progreso de subida (0–80%)**
-        xhr.upload.onprogress = ev => {
-          if (ev.lengthComputable) {
-            const pct = Math.round(ev.loaded/ev.total * 80);
-            progressBar.style.width = pct + '%';
-            progressText.textContent = pct + '%';
-            loadingText.textContent = 'Subiendo documentos deportivos...';
-          }
-        };
-
-        // **2) Al terminar subida, animamos a 85% y mensaje de "procesando servidor"**
-        xhr.upload.onloadend = () => {
-          progressBar.style.width = '85%';
-          progressText.textContent = '85%';
-          loadingText.textContent = 'Procesando puntajes deportivos en servidor…';
-        };
-
-        // **3) Cuando llega respuesta**
-        xhr.onload = () => {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            const data = JSON.parse(xhr.responseText);
-            progressBar.style.width = '100%';
-            progressText.textContent = '100%';
-            loadingText.textContent = '¡Evaluación deportiva completada! Redirigiendo…';
-            setTimeout(() => {
-              window.location.href = data.redirect_url;
-            }, 1000);
-          } else {
-            const err = xhr.responseText || 'Error desconocido';
-            errorMessage.textContent = 'Error del servidor: ' + err;
-            errorMessage.style.display = 'block';
-            loadingText.textContent = '';
-            progressCont.style.display = 'none';
-          }
-        };
-
-        xhr.onerror = () => {
-          errorMessage.textContent = 'Error de red. Revisa tu conexión.';
-          errorMessage.style.display = 'block';
-          loadingText.textContent = '';
-          progressCont.style.display = 'none';
-        };
-
-        // Enviamos
-        xhr.send(fd);
-      });
-    })();
+    form.addEventListener('submit', (e) => {
+      // Show loading overlay
+      loadingOverlay.classList.add('show');
+    });
   </script>
 </body>
 </html>
