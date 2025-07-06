@@ -1,5 +1,6 @@
 import re
 import os
+import json
 import nltk
 import pdfplumber
 import pandas as pd
@@ -325,6 +326,57 @@ def filter_all_lines(text: str) -> str:
 def contar_puntaje_reconocimientos(n: int) -> int:
     return min(n * 1, 20)  # 1 punto por reconocimiento, máximo 20
 
+### --------------- Performance --------------- ###
+# Función que pide a GPT contar primeros, segundos y terceros lugares, devuelve dict
+def contar_lugares_por_seccion(texto: str, seccion: str, client: OpenAI) -> dict:
+    prompt = (
+        f"Analiza el texto de la sección {seccion}.\n"
+        "Cuenta cuántas veces se obtuvieron los siguientes lugares en torneos:\n"
+        "- Primer lugar (ejemplos: '1er lugar', 'campeón', 'ganador')\n"
+        "- Segundo lugar (ejemplos: '2do lugar', 'subcampeón', 'finalista')\n"
+        "- Tercer lugar (ejemplos: '3er lugar', 'tercer puesto', 'bronce')\n"
+        "- NO cuentes menciones de participación sin lugar ni repitas torneos.\n\n"
+        "Responde solo con un JSON en este formato:\n"
+        "{\"primeros\": 0, \"segundos\": 0, \"terceros\": 0}\n\n"
+        "Texto:\n" + texto
+    )
+    try:
+        response = client.chat.completions.create(
+            model="openai/gpt-4.1-mini",
+            temperature=0,
+            messages=[
+                {"role": "system", "content": "Eres un analizador preciso de resultados deportivos."},
+                {"role": "user", "content": prompt}
+            ]
+        )
+        raw = response.choices[0].message.content.strip()
+        print(f"📘 JSON en sección {seccion}:", raw)
+        return json.loads(raw)
+    except Exception as e:
+        print(f"❌ Error en sección {seccion}:", e)
+        return {"primeros": 0, "segundos": 0, "terceros": 0}
+
+def calcular_puntaje(contadores: dict) -> int:
+    return contadores["primeros"] * 3 + contadores["segundos"] * 2 + contadores["terceros"] * 1
+
+def clean_lines(text: str) -> str:
+    lines = text.splitlines()
+    return "\n".join([line.strip() for line in lines if line.strip()])
+
+def procesar_lugares(txt: str, model: OpenAI) -> int:
+    seccion5 = clean_lines(extract_section(txt, OCRInputFormats.SEC_5_START.value, OCRInputFormats.SEC_6_START.value))
+    seccion6 = clean_lines(extract_section(txt, OCRInputFormats.SEC_6_START.value, OCRInputFormats.SECTION_7_START.value))
+    seccion7 = clean_lines(extract_section(txt, OCRInputFormats.SECTION_7_START.value, OCRInputFormats.END_SECTION.value))
+
+    contadores_totales = {"primeros": 0, "segundos": 0, "terceros": 0}
+    for nombre, texto in [("5", seccion5), ("6", seccion6), ("7", seccion7)]:
+        if texto:
+            conteo = contar_lugares_por_seccion(texto, nombre, model)
+            for key in contadores_totales:
+                contadores_totales[key] += conteo.get(key, 0)
+
+    return calcular_puntaje(contadores_totales)
+
 ### --------------- MAIN LOOP --------------- ###
 def main_loop(base_path, output_csv_path):
     df = tabular_folder(base_path)
@@ -417,20 +469,21 @@ def main_loop(base_path, output_csv_path):
         )
     )
 
-    # Unimos al DataFrame original
-    df["cantidad_de_torneos"] = df[["local_tournaments", "international_tournaments"]].sum(axis=1)
-
-    df_sorted = df.sort_values(
-        by=[
-            "sport_selection",
-            "count_school",
-            "count_club",
-            "count_national",
-            "international_tournaments",
-            "local_tournaments",
-            "nem"
-        ],
+    df["awards_points"] = df["cv_text"].progress_apply(
+        lambda txt: procesar_lugares(
+            txt=txt,
+            model=model
+        )
     )
+
+    # Rellenar posibles NaN con 0
+    df[OCRInputFormats.PUNTAJE_COLS.value] = df[OCRInputFormats.PUNTAJE_COLS.value].fillna(0)
+
+    # Calcular puntaje total
+    df["total_score"] = df[OCRInputFormats.PUNTAJE_COLS.value].sum(axis=1)
+
+    # Ordenar por total_score descendente
+    df_sorted = df.sort_values(by="total_score", ascending=False)
 
     # Eliminar columnas innecesarias antes de exportar
     df_sorted = df_sorted.drop(columns=["cv_text", "error"], errors="ignore")

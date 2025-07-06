@@ -19,14 +19,7 @@
       height: 20px;
       width: 0%;
       background: #4caf50;
-      transition: width 0.3s ease;
-    }
-    #loading-text {
-      color: #000;
-      text-align: center;
-      margin-top: 10px;
-      font-weight: bold;
-      display: block;
+      transition: width 0.2s ease;
     }
     #progress-text {
       margin-top: 5px;
@@ -34,89 +27,137 @@
       text-align: center;
       color: #333;
     }
+    #loading-text {
+      color: #000;
+      text-align: center;
+      margin-top: 5px;
+      font-weight: bold;
+    }
+    #error-message {
+      color: #b00;
+      text-align: center;
+      margin-top: 10px;
+      font-weight: bold;
+      display: none;
+    }
     .form-wrapper {
       display: flex;
       flex-direction: column;
-      align-items: center; /* Centrado horizontal */
-      justify-content: center; /* Centrado vertical (si usas height) */
-      height: 60vh; /* opcional: para centrar verticalmente en pantalla */
+      align-items: center;
+      justify-content: center;
+      height: 60vh;
     }
   </style>
 </head>
 <body>
   {% include "ocr_processor/navbar.html" %}
 
-  <div class="container">
-    <h1>Subir carpeta con PDFs de<br>notas de enseñanza media <br>y curriculums deportivos</h1>
-    <form id="upload-form" method="post" enctype="multipart/form-data">
+  <div class="container form-wrapper">
+    <h1>Subir carpeta con PDFs de<br>notas y curriculums deportivos</h1>
+    <form id="upload-form"
+          method="post"
+          enctype="multipart/form-data"
+          action="{% url 'upload_pdf_cv' %}">
       {% csrf_token %}
       <div class="form-group">
         <label for="id_files">Selecciona una carpeta con archivos (PDF):</label>
-        <input
-          id="id_files"
-          name="ocr_files"
-          type="file"
-          multiple
-          webkitdirectory
-          required
-        />
+        <input id="id_files"
+               name="ocr_files"
+               type="file"
+               multiple
+               webkitdirectory
+               required />
       </div>
-
-      <button type="submit" class="btn" style="margin-top: 20px;">Procesar carpeta</button>
+      <button type="submit" class="btn" style="margin-top: 20px;">
+        Procesar carpeta
+      </button>
     </form>
 
     <div id="progress-container">
       <div id="progress-bar"></div>
-      <div id="progress-text">Procesando...</div>
-      <div id="loading-text" style="color: #000; text-align: center; margin-top: 10px; font-weight: bold;">
-        Cargando...
-      </div>
+      <div id="progress-text">0%</div>
+      <div id="loading-text"></div>
     </div>
-    
+    <div id="error-message"></div>
   </div>
 
-
   <script>
-    const form = document.getElementById('upload-form');
-    const input = document.getElementById('id_files');
-    const progressContainer = document.getElementById('progress-container');
-    const progressBar = document.getElementById('progress-bar');
-    const progressText = document.getElementById('progress-text');
+    (function(){
+      const form             = document.getElementById('upload-form');
+      const input            = document.getElementById('id_files');
+      const progressCont     = document.getElementById('progress-container');
+      const progressBar      = document.getElementById('progress-bar');
+      const progressText     = document.getElementById('progress-text');
+      const loadingText      = document.getElementById('loading-text');
+      const errorMessage     = document.getElementById('error-message');
+      const csrfToken        = document.querySelector('[name=csrfmiddlewaretoken]').value;
+      
+      form.addEventListener('submit', e => {
+        e.preventDefault();
+        errorMessage.style.display = 'none';
+        progressCont.style.display  = 'block';
+        progressBar.style.width     = '0%';
+        progressText.textContent    = '0%';
+        loadingText.textContent     = 'Subiendo archivos...';
 
-    form.addEventListener('submit', (e) => {
-      e.preventDefault();
-
-      const files = input.files;
-      const totalFiles = files.length;
-
-      if (totalFiles === 0) {
-        alert("Debes seleccionar al menos un archivo.");
-        return;
-      }
-
-      progressContainer.style.display = 'block';
-      progressBar.style.width = '0%';
-      progressText.textContent = 'Procesando...';
-      document.getElementById('loading-text').textContent = 'Cargando...';
-
-      let current = 0;
-      const maxPercent = 90;  // dejar la barra al 90%
-
-      const interval = setInterval(() => {
-        current += 1;
-        const percent = Math.min((current / totalFiles) * maxPercent, maxPercent);
-        progressBar.style.width = percent + '%';
-        progressText.textContent = `Procesando ${current} de ${totalFiles} archivos...`;
-
-        if (current >= totalFiles) {
-          clearInterval(interval);
-          progressBar.style.width = maxPercent + '%';
-          progressText.textContent = 'Enviando archivos al servidor...';
-          document.getElementById('loading-text').textContent = 'Finalizando...';
-          setTimeout(() => form.submit(), 300); // pequeño delay opcional
+        // Preparamos FormData
+        const files = input.files;
+        if (!files.length) {
+          errorMessage.textContent = 'Selecciona al menos un archivo.';
+          errorMessage.style.display = 'block';
+          return;
         }
-      }, 200);
-    });
+        const fd = new FormData();
+        for (let f of files) fd.append('ocr_files', f);
+
+        // Creamos y configuramos el XHR
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', form.action, true);
+        xhr.setRequestHeader('X-CSRFToken', csrfToken);
+        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+
+        // **1) Progreso de subida (0–80%)**
+        xhr.upload.onprogress = ev => {
+          if (ev.lengthComputable) {
+            const pct = Math.round(ev.loaded/ev.total * 80);
+            progressBar.style.width  = pct + '%';
+            progressText.textContent = pct + '%';
+          }
+        };
+
+        // **2) Al terminar subida, animamos a 85% y mensaje de “procesando servidor”**
+        xhr.upload.onloadend = () => {
+          progressBar.style.width  = '85%';
+          progressText.textContent = '85%';
+          loadingText.textContent  = 'Procesando en servidor…';
+        };
+
+        // **3) Cuando llega respuesta**
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            const data = JSON.parse(xhr.responseText);
+            progressBar.style.width  = '100%';
+            progressText.textContent = '100%';
+            loadingText.textContent  = '¡Listo! Redirigiendo…';
+            window.location.href    = data.redirect_url;
+          } else {
+            const err = xhr.responseText || 'Error desconocido';
+            errorMessage.textContent = 'Error del servidor: ' + err;
+            errorMessage.style.display = 'block';
+            loadingText.textContent = '';
+          }
+        };
+
+        xhr.onerror = () => {
+          errorMessage.textContent = 'Error de red. Revisa tu conexión.';
+          errorMessage.style.display = 'block';
+          loadingText.textContent = '';
+        };
+
+        // Enviamos
+        xhr.send(fd);
+      });
+    })();
   </script>
 </body>
 </html>
