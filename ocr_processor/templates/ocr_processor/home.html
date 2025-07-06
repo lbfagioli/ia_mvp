@@ -6,83 +6,349 @@
   <title>MVP Grupo 2 - IA Aplicada</title>
   <link rel="stylesheet" href="{% static 'css/style.css' %}" />
   <style>
+    :root {
+      --primary-red: #dc2626;
+      --secondary-red: #ef4444;
+      --dark-red: #991b1b;
+      --light-red: #fecaca;
+      --accent-red: #fee2e2;
+      --text-primary: #1f2937;
+      --text-secondary: #6b7280;
+      --white: #ffffff;
+      --gray-50: #f9fafb;
+      --gray-100: #f3f4f6;
+      --shadow-red: rgba(220, 38, 38, 0.1);
+      --shadow-red-hover: rgba(220, 38, 38, 0.2);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: #fff;
-      color: #b30000; /* rojo oscuro */
+      background: linear-gradient(135deg, var(--gray-50) 0%, var(--white) 100%);
+      color: var(--text-primary);
       margin: 0;
       padding: 0;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
+      line-height: 1.6;
     }
+
     .container {
-      max-width: 900px;
-      margin: 4rem auto;
-      background: #fff;
-      padding: 2rem 3rem;
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(168, 0, 0, 0.15);
-      border: 2px solid #b30000; /* borde rojo */
+      max-width: 1000px;
+      margin: 2rem auto;
+      background: var(--white);
+      padding: 3rem 4rem;
+      border-radius: 16px;
+      box-shadow: 
+        0 10px 25px var(--shadow-red),
+        0 4px 10px rgba(0, 0, 0, 0.05);
+      border: 1px solid var(--accent-red);
+      position: relative;
+      overflow: hidden;
     }
+
+    .container::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--primary-red), var(--secondary-red));
+    }
+
     header h1 {
       font-weight: 700;
-      color: #b30000; /* rojo fuerte */
-      margin-bottom: 0.25rem;
-      font-size: 2.5rem;
+      color: var(--white);
+      margin-bottom: 0.5rem;
+      font-size: 2.75rem;
       text-align: center;
+      text-shadow: 0 2px 4px var(--shadow-red);
     }
+
     header p.subtitle {
+      font-weight: 500;
+      color: var(--gray-100);
+      margin-bottom: 3rem;
+      font-size: 1.4rem;
+      text-align: center;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    section {
+      margin-bottom: 2.5rem;
+    }
+
+    section h2 {
+      color: var(--dark-red);
+      margin-top: 2rem;
+      margin-bottom: 1rem;
+      font-size: 1.75rem;
       font-weight: 600;
-      color: #cc0000; /* rojo vivo */
-      margin-bottom: 2rem;
-      font-size: 1.3rem;
+      position: relative;
+      padding-left: 1rem;
+    }
+
+    section h2::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 4px;
+      height: 24px;
+      background: var(--primary-red);
+      border-radius: 2px;
+    }
+
+    section ul {
+      list-style: none;
+      font-size: 1.15rem;
+      line-height: 1.8;
+      margin-left: 0;
+      padding-left: 0;
+      color: var(--text-primary);
+    }
+
+    section ul li {
+      margin: 1rem 0;
+      padding: 1rem 1.5rem;
+      background: var(--accent-red);
+      border-radius: 8px;
+      border-left: 4px solid var(--primary-red);
+      transition: all 0.3s ease;
+      position: relative;
+    }
+
+    section ul li:hover {
+      background: var(--light-red);
+      transform: translateX(4px);
+      box-shadow: 0 4px 12px var(--shadow-red-hover);
+    }
+
+    section ul li strong {
+      color: var(--dark-red);
+      font-weight: 600;
+    }
+
+    a {
+      color: var(--primary-red);
+      text-decoration: none;
+      font-weight: 500;
+      transition: color 0.3s ease;
+    }
+
+    a:hover {
+      color: var(--secondary-red);
+      text-decoration: underline;
+    }
+
+    /* Loading Spinner Styles */
+    .loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.95);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      backdrop-filter: blur(4px);
+    }
+
+    .loading-overlay.show {
+      display: flex;
+    }
+
+    .spinner {
+      width: 60px;
+      height: 60px;
+      border: 4px solid var(--accent-red);
+      border-top: 4px solid var(--primary-red);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      position: relative;
+    }
+
+    .spinner::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 20px;
+      height: 20px;
+      background: var(--primary-red);
+      border-radius: 50%;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    @keyframes pulse {
+      0%, 100% { 
+        opacity: 0.3;
+        transform: translate(-50%, -50%) scale(0.8);
+      }
+      50% { 
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+      }
+    }
+
+    .loading-text {
+      margin-top: 1.5rem;
+      color: var(--text-secondary);
+      font-size: 1.1rem;
+      font-weight: 500;
       text-align: center;
     }
-    section h2 {
-      color: #b30000; /* rojo fuerte */
-      margin-top: 1.5rem;
-      margin-bottom: 0.75rem;
-      font-size: 1.6rem;
+
+    /* Button styles for triggering loading */
+    .btn {
+      background: linear-gradient(135deg, var(--primary-red), var(--secondary-red));
+      color: var(--white);
+      border: none;
+      padding: 0.75rem 2rem;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 12px var(--shadow-red);
+      margin: 1rem 0.5rem;
     }
-    section ul {
-      list-style: disc inside;
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px var(--shadow-red-hover);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .container {
+        margin: 1rem;
+        padding: 2rem 1.5rem;
+      }
+
+      header h1 {
+        font-size: 2.25rem;
+      }
+
+      header p.subtitle {
+        font-size: 1.2rem;
+      }
+
+      section h2 {
+        font-size: 1.5rem;
+      }
+
+      section ul li {
+        padding: 0.75rem 1rem;
+        font-size: 1rem;
+      }
+    }
+
+    /* Enhanced visual elements */
+    .highlight-card {
+      background: linear-gradient(135deg, var(--accent-red), var(--light-red));
+      padding: 2rem;
+      border-radius: 12px;
+      margin: 2rem 0;
+      border: 1px solid var(--light-red);
+      text-align: center;
+    }
+
+    .highlight-card h3 {
+      color: var(--dark-red);
+      margin-bottom: 1rem;
+      font-size: 1.4rem;
+    }
+
+    .highlight-card p {
+      color: var(--text-secondary);
       font-size: 1.1rem;
-      line-height: 1.6;
-      margin-left: 1rem;
-      color: #b30000;
-    }
-    section ul li {
-      margin: 0.5rem 0;
-    }
-    a {
-      color: #cc0000;
-      text-decoration: none;
-    }
-    a:hover {
-      text-decoration: underline;
+      margin: 0;
     }
   </style>
 </head>
 <body>
   {% include "ocr_processor/navbar.html" %}
+  
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" id="loadingOverlay">
+    <div>
+      <div class="spinner"></div>
+      <div class="loading-text">Procesando información...</div>
+    </div>
+  </div>
 
   <div class="container">
-    <h1>Propuesta de MVP - Grupo 2 IA Aplicada</h1>
-    <p class="subtitle">Crear una herramienta para priorizar automáticamente a los postulantes.</p>
+    <header>
+      <h1>Propuesta de MVP - Grupo 2 IA Aplicada</h1>
+      <p class="subtitle">Crear una herramienta para priorizar automáticamente a los postulantes.</p>
+    </header>
 
     <section>
       <h2>Aplicación web:</h2>
       <ul>
-        <li><strong>Módulo de cálculo de puntajes deportivos.</strong></li>
-        <li><strong>Módulo de conversión de notas internacionales.</strong></li>
+        <li><strong>Módulo de cálculo de puntajes deportivos.</strong> Sistema inteligente para evaluar y clasificar candidatos basado en métricas deportivas.</li>
+        <li><strong>Módulo de conversión de notas internacionales.</strong> Herramienta automatizada para estandarizar calificaciones de diferentes sistemas educativos.</li>
       </ul>
 
       <h2>Uso real:</h2>
       <ul>
-        <li>Entregar carpeta con CVs y notas NEM para obtener cálculo de puntajes o notas ordenados por prioridad.</li>
+        <li><strong>Procesamiento automatizado:</strong> Entregar carpeta con CVs y notas NEM para obtener cálculo de puntajes o notas ordenados por prioridad.</li>
       </ul>
     </section>
+
+    <div class="highlight-card">
+      <h3>🚀 Optimización Inteligente</h3>
+      <p>Nuestra IA procesa y prioriza candidatos de manera eficiente, ahorrando tiempo valioso en el proceso de selección.</p>
+    </div>
   </div>
+
+  <script>
+    function showLoading() {
+      const overlay = document.getElementById('loadingOverlay');
+      overlay.classList.add('show');
+      
+      // Simulate processing time (remove this in production)
+      setTimeout(() => {
+        overlay.classList.remove('show');
+      }, 3000);
+    }
+
+    // You can call this function from your Django views or AJAX calls
+    function hideLoading() {
+      const overlay = document.getElementById('loadingOverlay');
+      overlay.classList.remove('show');
+    }
+
+    // Example of how to integrate with Django forms
+    document.addEventListener('DOMContentLoaded', function() {
+      const forms = document.querySelectorAll('form');
+      forms.forEach(form => {
+        form.addEventListener('submit', function() {
+          showLoading();
+        });
+      });
+    });
+  </script>
 </body>
 </html>

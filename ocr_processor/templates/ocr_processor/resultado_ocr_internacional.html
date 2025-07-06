@@ -6,74 +6,432 @@
   <title>Resultados del OCR Internacional</title>
   <link rel="stylesheet" href="{% static 'css/style.css' %}">
   <style>
-    pre.logs {
-      background: #f8f8f8;
-      border: 1px solid #ccc;
-      padding: 10px;
-      max-height: 400px;
-      overflow-y: auto;
-      white-space: pre-wrap;
-      margin-top: 20px;
-      font-family: monospace;
-      color: #333;
-      display: none;
+    :root {
+      --primary-red: #dc2626;
+      --secondary-red: #ef4444;
+      --dark-red: #991b1b;
+      --light-red: #fecaca;
+      --accent-red: #fee2e2;
+      --text-primary: #1f2937;
+      --text-secondary: #6b7280;
+      --white: #ffffff;
+      --gray-50: #f9fafb;
+      --gray-100: #f3f4f6;
+      --gray-200: #e5e7eb;
+      --shadow-red: rgba(220, 38, 38, 0.1);
+      --shadow-red-hover: rgba(220, 38, 38, 0.2);
+      --success-green: #10b981;
+      --success-light: #d1fae5;
+      --error-red: #ef4444;
+      --error-light: #fef2f2;
+      --warning-yellow: #f59e0b;
+      --warning-light: #fef3c7;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, var(--gray-50) 0%, var(--white) 100%);
+      color: var(--text-primary);
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 2rem auto;
+      background: var(--white);
+      padding: 3rem 4rem;
+      border-radius: 16px;
+      box-shadow: 
+        0 10px 25px var(--shadow-red),
+        0 4px 10px rgba(0, 0, 0, 0.05);
+      border: 1px solid var(--accent-red);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .container::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--primary-red), var(--secondary-red));
+    }
+
+    h1 {
+      font-weight: 700;
+      color: var(--white);
+      margin-bottom: 0.5rem;
+      font-size: 2.75rem;
+      text-align: center;
+      text-shadow: 0 2px 4px var(--shadow-red);
+      background: linear-gradient(135deg, var(--primary-red), var(--secondary-red));
+      padding: 2rem;
+      margin: -3rem -4rem 2rem -4rem;
+      border-radius: 16px 16px 0 0;
+      position: relative;
+    }
+
+    h3 {
+      color: var(--dark-red);
+      margin-top: 2rem;
+      margin-bottom: 1rem;
+      font-size: 1.5rem;
+      font-weight: 600;
+      position: relative;
+      padding-left: 1rem;
+    }
+
+    h3::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 4px;
+      height: 20px;
+      background: var(--primary-red);
+      border-radius: 2px;
+    }
+
+    /* Statistics Cards */
+    .stats-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+      margin: 2rem 0;
+    }
+
+    .stat-card {
+      background: var(--white);
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      border: 1px solid var(--gray-200);
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-card.total {
+      border-left: 4px solid var(--primary-red);
+      background: linear-gradient(135deg, var(--accent-red), var(--white));
+    }
+
+    .stat-card.success {
+      border-left: 4px solid var(--success-green);
+      background: linear-gradient(135deg, var(--success-light), var(--white));
+    }
+
+    .stat-card.error {
+      border-left: 4px solid var(--error-red);
+      background: linear-gradient(135deg, var(--error-light), var(--white));
+    }
+
+    .stat-number {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      display: block;
+    }
+
+    .stat-card.total .stat-number { color: var(--primary-red); }
+    .stat-card.success .stat-number { color: var(--success-green); }
+    .stat-card.error .stat-number { color: var(--error-red); }
+
+    .stat-label {
+      font-size: 1rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Button Styles */
+    .btn {
+      background: linear-gradient(135deg, var(--primary-red), var(--secondary-red));
+      color: var(--white);
+      border: none;
+      padding: 0.75rem 2rem;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 12px var(--shadow-red);
+      margin: 0.5rem;
+      text-decoration: none;
+      display: inline-block;
+      text-align: center;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px var(--shadow-red-hover);
+      text-decoration: none;
+      color: var(--white);
+    }
+
+    .btn:active {
+      transform: translateY(0);
     }
 
     .btn-gris {
-      background-color: var(--uandes-medium-gray);
+      background: linear-gradient(135deg, var(--text-secondary), #4b5563);
+      box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
     }
 
     .btn-gris:hover {
-      background-color: #5a6268;
+      background: linear-gradient(135deg, #4b5563, #374151);
+      box-shadow: 0 6px 20px rgba(107, 114, 128, 0.4);
     }
 
+    .btn-download {
+      background: linear-gradient(135deg, var(--success-green), #059669);
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+      font-size: 1.1rem;
+      padding: 1rem 2.5rem;
+      margin: 1.5rem 0;
+    }
+
+    .btn-download:hover {
+      background: linear-gradient(135deg, #059669, #047857);
+      box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+    }
+
+    .btn-download::before {
+      content: '⬇️ ';
+      margin-right: 0.5rem;
+    }
+
+    /* Error Message */
     .error {
-      color: red;
-      font-weight: bold;
+      background: var(--error-light);
+      color: var(--error-red);
+      font-weight: 600;
+      padding: 1.5rem;
+      border-radius: 12px;
+      border: 1px solid var(--error-red);
+      margin: 2rem 0;
+      text-align: center;
+      font-size: 1.1rem;
+    }
+
+    .error::before {
+      content: '⚠️ ';
+      margin-right: 0.5rem;
+    }
+
+    /* Logs Section */
+    .logs-section {
+      margin-top: 2rem;
+      background: var(--gray-50);
+      border-radius: 12px;
+      padding: 1.5rem;
+      border: 1px solid var(--gray-200);
+    }
+
+    pre.logs {
+      background: var(--white);
+      border: 1px solid var(--gray-200);
+      padding: 1.5rem;
+      max-height: 400px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      margin-top: 1rem;
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      color: var(--text-primary);
+      display: none;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      line-height: 1.4;
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    pre.logs::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    pre.logs::-webkit-scrollbar-track {
+      background: var(--gray-100);
+      border-radius: 4px;
+    }
+
+    pre.logs::-webkit-scrollbar-thumb {
+      background: var(--gray-200);
+      border-radius: 4px;
+    }
+
+    pre.logs::-webkit-scrollbar-thumb:hover {
+      background: var(--text-secondary);
+    }
+
+    /* Action Buttons Container */
+    .actions-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 1rem;
+      margin-top: 2rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--gray-200);
+    }
+
+    /* International info card */
+    .international-info {
+      background: linear-gradient(135deg, var(--accent-red), var(--white));
+      border: 1px solid var(--light-red);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin: 2rem 0;
+      text-align: center;
+    }
+
+    .international-info h4 {
+      color: var(--dark-red);
+      margin-bottom: 0.5rem;
+      font-size: 1.2rem;
+    }
+
+    .international-info p {
+      color: var(--text-secondary);
+      margin: 0;
+      font-size: 0.95rem;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .container {
+        margin: 1rem;
+        padding: 2rem 1.5rem;
+      }
+
+      h1 {
+        font-size: 2.25rem;
+        margin: -2rem -1.5rem 2rem -1.5rem;
+        padding: 1.5rem;
+      }
+
+      h1::after {
+        top: 0.75rem;
+        right: 1.5rem;
+        font-size: 1.5rem;
+      }
+
+      .stats-container {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+      }
+
+      .stat-card {
+        padding: 1rem;
+      }
+
+      .stat-number {
+        font-size: 2rem;
+      }
+
+      .actions-container {
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .btn {
+        width: 100%;
+        max-width: 300px;
+      }
     }
   </style>
 </head>
 <body>
   {% include "ocr_processor/navbar.html" %}
-
+  
   <div class="container">
     <h1>Resultados (NEM Internacional)</h1>
-
+    
     {% if error %}
-      <p class="error">{{ error }}</p>
+      <div class="error">{{ error }}</div>
     {% else %}
-      <p><strong>Total de documentos subidos:</strong> {{ total_docs }}</p>
-      <p><strong>Procesados correctamente:</strong> {{ procesados_ok }}</p>
-      <p><strong>Con error:</strong> {{ errores }}</p>
+      <div class="international-info">
+        <h4>🎓 Conversión de Notas Internacionales</h4>
+        <p>Los certificados han sido procesados y convertidos al sistema de calificación local</p>
+      </div>
+
+      <div class="stats-container">
+        <div class="stat-card total">
+          <span class="stat-number">{{ total_docs }}</span>
+          <span class="stat-label">Certificados procesados</span>
+        </div>
+        <div class="stat-card success">
+          <span class="stat-number">{{ procesados_ok }}</span>
+          <span class="stat-label">Conversiones exitosas</span>
+        </div>
+        <div class="stat-card error">
+          <span class="stat-number">{{ errores }}</span>
+          <span class="stat-label">Con errores</span>
+        </div>
+      </div>
 
       {% if csv_url %}
-        <a href="{{ csv_url }}" download class="btn">Descargar CSV con resultados</a>
+        <div style="text-align: center;">
+          <a href="{{ csv_url }}" download class="btn btn-download">
+            Descargar CSV con conversiones
+          </a>
+        </div>
       {% endif %}
 
-      <h3>Logs del procesamiento:</h3>
-      <button id="toggleLogsBtn" class="btn btn-gris">Mostrar/Ocultar detalles</button>
-      <pre class="logs" id="logsBlock">
-{% for log in logs %}
-{{ log }}
-{% endfor %}
-      </pre>
+      <div class="logs-section">
+        <h3>Detalles del procesamiento internacional</h3>
+        <button id="toggleLogsBtn" class="btn btn-gris">Mostrar detalles</button>
+        <pre class="logs" id="logsBlock">{% for log in logs %}{{ log }}{% endfor %}</pre>
+      </div>
     {% endif %}
 
-    <a class="btn btn-gris volver" href="{% url 'upload_pdf_internacional' %}">Volver atrás</a>
+    <div class="actions-container">
+      <a class="btn btn-gris" href="{% url 'upload_pdf_internacional' %}">
+        ← Volver al módulo internacional
+      </a>
+    </div>
   </div>
 
   <script>
     const toggleBtn = document.getElementById('toggleLogsBtn');
     const logsBlock = document.getElementById('logsBlock');
-
+    
     toggleBtn?.addEventListener('click', () => {
       if (logsBlock.style.display === 'none' || logsBlock.style.display === '') {
         logsBlock.style.display = 'block';
         toggleBtn.textContent = 'Ocultar detalles';
+        toggleBtn.style.background = 'linear-gradient(135deg, var(--warning-yellow), #d97706)';
       } else {
         logsBlock.style.display = 'none';
         toggleBtn.textContent = 'Mostrar detalles';
+        toggleBtn.style.background = 'linear-gradient(135deg, var(--text-secondary), #4b5563)';
       }
+    });
+
+    // Add smooth scroll to logs when shown
+    toggleBtn?.addEventListener('click', () => {
+      setTimeout(() => {
+        if (logsBlock.style.display === 'block') {
+          logsBlock.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      }, 100);
     });
   </script>
 </body>
