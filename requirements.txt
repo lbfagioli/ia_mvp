@@ -14,9 +14,12 @@ PyPDF2==3.0.1
 pytesseract==0.3.10
 unstructured[ocr,pdf]==0.12.5
 pdfminer.six==20201018
-pysentimiento==0.3.0
+openai
 transformers
 accelerate
 sentencepiece
 bitsandbytes
 ipywidgets==7.7.1
+python-dotenv==1.1.0
+PyMuPDF
+google-generativeai

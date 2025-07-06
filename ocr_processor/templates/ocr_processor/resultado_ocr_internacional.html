@@ -1,0 +1,80 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Resultados del OCR Internacional</title>
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+  <style>
+    pre.logs {
+      background: #f8f8f8;
+      border: 1px solid #ccc;
+      padding: 10px;
+      max-height: 400px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      margin-top: 20px;
+      font-family: monospace;
+      color: #333;
+      display: none;
+    }
+
+    .btn-gris {
+      background-color: var(--uandes-medium-gray);
+    }
+
+    .btn-gris:hover {
+      background-color: #5a6268;
+    }
+
+    .error {
+      color: red;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  {% include "ocr_processor/navbar.html" %}
+
+  <div class="container">
+    <h1>Resultados (NEM Internacional)</h1>
+
+    {% if error %}
+      <p class="error">{{ error }}</p>
+    {% else %}
+      <p><strong>Total de documentos subidos:</strong> {{ total_docs }}</p>
+      <p><strong>Procesados correctamente:</strong> {{ procesados_ok }}</p>
+      <p><strong>Con error:</strong> {{ errores }}</p>
+
+      {% if csv_url %}
+        <a href="{{ csv_url }}" download class="btn">Descargar CSV con resultados</a>
+      {% endif %}
+
+      <h3>Logs del procesamiento:</h3>
+      <button id="toggleLogsBtn" class="btn btn-gris">Mostrar/Ocultar detalles</button>
+      <pre class="logs" id="logsBlock">
+{% for log in logs %}
+{{ log }}
+{% endfor %}
+      </pre>
+    {% endif %}
+
+    <a class="btn btn-gris volver" href="{% url 'upload_pdf_internacional' %}">Volver atrás</a>
+  </div>
+
+  <script>
+    const toggleBtn = document.getElementById('toggleLogsBtn');
+    const logsBlock = document.getElementById('logsBlock');
+
+    toggleBtn?.addEventListener('click', () => {
+      if (logsBlock.style.display === 'none' || logsBlock.style.display === '') {
+        logsBlock.style.display = 'block';
+        toggleBtn.textContent = 'Ocultar detalles';
+      } else {
+        logsBlock.style.display = 'none';
+        toggleBtn.textContent = 'Mostrar detalles';
+      }
+    });
+  </script>
+</body>
+</html>

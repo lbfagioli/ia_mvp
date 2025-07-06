@@ -1,0 +1,118 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Subir PDFs para NEM Internacional</title>
+  <link rel="stylesheet" href="{% static 'css/style.css' %}" />
+  <style>
+    #progress-container {
+      display: none;
+      margin-top: 20px;
+      width: 100%;
+      background: #eee;
+      border-radius: 10px;
+      overflow: hidden;
+      height: 20px;
+    }
+    #progress-bar {
+      height: 20px;
+      width: 0%;
+      background: #4caf50;
+      transition: width 0.3s ease;
+    }
+    #loading-text {
+      color: #000;
+      text-align: center;
+      margin-top: 10px;
+      font-weight: bold;
+      display: block;
+    }
+    #progress-text {
+      margin-top: 5px;
+      font-weight: bold;
+      text-align: center;
+      color: #333;
+    }
+    .form-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 60vh;
+    }
+  </style>
+</head>
+<body>
+  {% include "ocr_processor/navbar.html" %}
+
+  <div class="container">
+    <h1>Subir carpeta con certificados de<br>notas extranjeras</h1>
+    <form id="upload-form" method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      <div class="form-group">
+        <label for="id_files">Selecciona una carpeta con archivos (PDF):</label>
+        <input
+          id="id_files"
+          name="ocr_files"
+          type="file"
+          multiple
+          webkitdirectory
+          required
+        />
+      </div>
+
+      <button type="submit" class="btn" style="margin-top: 20px;">Procesar carpeta</button>
+    </form>
+
+    <div id="progress-container">
+      <div id="progress-bar"></div>
+      <div id="progress-text">Procesando...</div>
+      <div id="loading-text">Cargando...</div>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('upload-form');
+    const input = document.getElementById('id_files');
+    const progressContainer = document.getElementById('progress-container');
+    const progressBar = document.getElementById('progress-bar');
+    const progressText = document.getElementById('progress-text');
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      const files = input.files;
+      const totalFiles = files.length;
+
+      if (totalFiles === 0) {
+        alert("Debes seleccionar al menos un archivo.");
+        return;
+      }
+
+      progressContainer.style.display = 'block';
+      progressBar.style.width = '0%';
+      progressText.textContent = 'Procesando...';
+      document.getElementById('loading-text').textContent = 'Cargando...';
+
+      let current = 0;
+      const maxPercent = 90;
+
+      const interval = setInterval(() => {
+        current += 1;
+        const percent = Math.min((current / totalFiles) * maxPercent, maxPercent);
+        progressBar.style.width = percent + '%';
+        progressText.textContent = `Procesando ${current} de ${totalFiles} archivos...`;
+
+        if (current >= totalFiles) {
+          clearInterval(interval);
+          progressBar.style.width = maxPercent + '%';
+          progressText.textContent = 'Enviando archivos al servidor...';
+          document.getElementById('loading-text').textContent = 'Finalizando...';
+          setTimeout(() => form.submit(), 300);
+        }
+      }, 200);
+    });
+  </script>
+</body>
+</html>

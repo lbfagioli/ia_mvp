@@ -6,6 +6,7 @@ from django.urls import reverse
 from .forms import UploadPDFForm
 from .ocr_utils import procesar_pdfs_en_carpeta, exportar_resultados_csv
 from .ocr_utils_2 import procesar_pdfs_en_carpeta as procesar_pdfs_en_carpeta_cv
+from .ocr_international import procesar_pdfs_en_carpeta as procesar_pdfs_en_carpeta_internacional
 
 from django.http import JsonResponse
 from django.shortcuts import render, redirect
@@ -129,6 +130,69 @@ def upload_pdf_cv(request):
     # GET
     form = UploadPDFForm()
     return render(request, "ocr_processor/upload_form_cv.html", {'form': form})
+
+def upload_pdf_internacional(request):
+    if request.method == "POST":
+        try:
+            archivos = request.FILES.getlist("ocr_files")
+            if not archivos:
+                raise ValueError("No se subieron archivos.")
+
+            # Crear carpeta temporal
+            sid = uuid.uuid4().hex
+            temp_dir = os.path.join(tempfile.gettempdir(), f"ocr_internacional_{sid}")
+            os.makedirs(temp_dir, exist_ok=True)
+
+            # Guardar PDFs
+            pdfs = []
+            for a in archivos:
+                if a.name.lower().endswith('.pdf'):
+                    if '/' in a.name or '\\' in a.name:
+                        continue  # Ignorar archivos en subcarpetas
+                    dest = os.path.join(temp_dir, os.path.basename(a.name))
+                    with open(dest, 'wb') as f:
+                        for chunk in a.chunks():
+                            f.write(chunk)
+                    pdfs.append(a.name)
+
+            # Procesar y generar CSV
+            out_dir = os.path.join("media", "ocr_csvs")
+            os.makedirs(out_dir, exist_ok=True)
+            csv_name = f"ocr_internacional_{sid}.csv"
+            csv_path = os.path.join(out_dir, csv_name)
+
+            resultados, logs = procesar_pdfs_en_carpeta_internacional(temp_dir)
+            exportar_resultados_csv(resultados, csv_path)
+
+            # Guardar en sesión
+            request.session['ocr_resultados'] = {
+                'total_docs':    len(pdfs),
+                'procesados_ok': len(resultados),
+                'errores':       len(pdfs) - len(resultados),
+                'csv_url':       f"/media/ocr_csvs/{csv_name}",
+                'logs':          logs,
+            }
+
+            redirect_url = reverse('resultado_ocr_internacional')
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({'redirect_url': redirect_url})
+            return redirect(redirect_url)
+
+        except Exception as e:
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({'error': str(e)}, status=500)
+            return render(request, "ocr_processor/resultado_ocr_internacional.html", {'error': str(e)})
+
+    # GET
+    form = UploadPDFForm()
+    return render(request, "ocr_processor/upload_form_internacional.html", {'form': form})
+
+def resultado_ocr_internacional(request):
+    resultados = request.session.get('ocr_resultados')
+    if not resultados:
+        return redirect(reverse('upload_pdf_internacional'))
+
+    return render(request, "ocr_processor/resultado_ocr_internacional.html", resultados)
 
 def resultado_ocr_cv(request):
     resultados = request.session.get('ocr_resultados')
