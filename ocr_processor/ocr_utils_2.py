@@ -3,11 +3,13 @@ import os
 import json
 import nltk
 import pdfplumber
+import pytesseract
 import pandas as pd
 from glob import glob
 from tqdm import tqdm
 from openai import OpenAI
 from typing import Union, Pattern
+from pdf2image import convert_from_path
 from unstructured.partition.pdf import partition_pdf
 from dotenv import load_dotenv
 from .constants import OCRInputFormats
@@ -105,10 +107,31 @@ def ocr_fallback(cv_path):
     print(f"[ocr_fallback] OCR extraído de {cv_path}, {len(full_text)} caracteres")
     return full_text
 
-FILENAME_PATTERN = re.compile(
-    r'(?P<rut>[\d\.]+(?:-[\dKk])?)_Post-(?P<id>[^_]+)_(?P<tipo>CV|NotasMedia)\.pdf',
-    re.IGNORECASE
-)
+def ocr_full_text(pdf_path: str, dpi: int = 200) -> str:
+    """
+    Convierte cada página del PDF a imagen y aplica OCR con pytesseract.
+    Devuelve todo el texto concatenado.
+    """
+    try:
+        # 1. Convertir PDF a lista de PIL Images
+        pages = convert_from_path(pdf_path, dpi=dpi)
+    except Exception as e:
+        print(f"[ocr_full_text] Error al convertir PDF a imágenes: {e}")
+        return ""
+
+    text_pages = []
+    for i, page_img in enumerate(pages, start=1):
+        try:
+            # 2. OCR sobre la imagen
+            text = pytesseract.image_to_string(page_img, lang='spa', config='--psm 1')
+            text_pages.append(text)
+        except Exception as e:
+            print(f"[ocr_full_text] OCR falló en página {i}: {e}")
+            text_pages.append("")
+
+    full_text = "\n".join(text_pages)
+    print(f"[ocr_full_text] OCR completado para {os.path.basename(pdf_path)} ({len(pages)} páginas)")
+    return full_text
 
 def list_pdf_files(input_folder):
     """Devuelve la lista de rutas *.pdf en la carpeta."""
@@ -223,19 +246,65 @@ def count_year_lines(section: str, year_pattern: Pattern = YearPat) -> int:
     """
     return sum(1 for line in section.splitlines() if year_pattern.search(line))
 
-def count_section_entries(
+def count_unique_year_lines_per_section(
     text: str,
-    point_mult: int,
-    start_pattern: Union[str, Pattern],
-    end_pattern: Union[str, Pattern],
-    max_count: int = 4,
-    year_pattern: Pattern = OCRInputFormats.YEAR_RE.value
-) -> int:
-    start_pat = re.compile(start_pattern, flags=re.IGNORECASE | re.DOTALL)
-    end_pat   = re.compile(end_pattern, flags=re.IGNORECASE)
-    sec       = extract_section(text, start_pat, end_pat)
-    return min(sum(1 for line in sec.splitlines() if year_pattern.search(line)), max_count) * point_mult
+    point_mult: float,
+    start_pattern: str,
+    end_pattern: str,
+    max_count: int = 4
+) -> float:
+    section = extract_section(
+        text,
+        compile_pattern(start_pattern, flags=re.IGNORECASE),
+        compile_pattern(end_pattern, flags=re.IGNORECASE)
+    )
+    lines = [ln.strip() for ln in section.splitlines() if ln.strip()]
+    data_lines = lines[1:-1]
 
+    years_found = set()
+    text_lines = set()
+
+    for ln in data_lines:
+        if re.fullmatch(r'[A-Z\s]{2,}', ln.upper()):
+            continue
+
+        years = YearPat.findall(ln)
+        if years:
+            years_found.update(int(y) for y in years)
+        else:
+            text_lines.add(ln)
+
+    total_items = len(years_found) + len(text_lines)
+    return min(total_items, max_count) * point_mult
+
+
+def count_local_tournaments(text: str, start_pattern, end_pattern) -> float:
+    section = extract_section(
+        text,
+        compile_pattern(start_pattern, re.IGNORECASE | re.MULTILINE),
+        compile_pattern(end_pattern,   re.IGNORECASE | re.MULTILINE),
+    )
+    raw = [ln.strip() for ln in section.splitlines() if ln.strip()]
+
+    event_lines = [
+        ln for ln in raw
+        if YearPat.search(ln) and not re.match(r'^\s*AÑO\b', ln, re.IGNORECASE)
+    ]
+
+    # Quita duplicados y multiplica
+    unique_events = set(event_lines)
+    return len(unique_events) * 2.5
+
+
+def count_international_tournaments(text: str, start_pattern, end_pattern) -> float:
+    section = extract_section(
+        text,
+        compile_pattern(start_pattern, re.IGNORECASE),
+        compile_pattern(end_pattern, re.IGNORECASE),
+    )
+    lines = [line.strip().lower() for line in section.splitlines() if line.strip()]
+    unique_events = {line for line in lines if YearPat.search(line)}
+    return len(unique_events) * 5
 
 def exportar_resultados_csv(df: pd.DataFrame, output_csv: str):
     df.to_csv(output_csv, index=False, encoding='utf-8')
@@ -388,63 +457,57 @@ def main_loop(base_path, output_csv_path):
 
     df["sport_selection"] = df["cv_text"].apply(rank_sports_from_selection)
 
-    # 1) Selección deportiva escolar (sección 4…ESCOLAR…AÑO hasta '\n5.')
-    df['count_school'] = df['cv_text'].apply(
-        lambda txt: count_section_entries(
+    # 1) Selección deportiva escolar
+    df['count_school'] = df['cv_text'].progress_apply(
+        lambda txt: count_unique_year_lines_per_section(
             txt,
-            1,
-            r'4\.\s*PARTICIPACIÓN\s*EN\s*SELECCIÓN\s*DEPORTIVA\s*ESCOLAR.*?AÑO',
-            r'\*Si el estudiante.*?dejar en blanco\.|\n5\.'
-        )
-    )
-
-    # 2) Club deportivo (sección 3…CLUBDEPORTIVO…AÑO hasta '\n4.' o similar)
-    df['count_club'] = df['cv_text'].apply(
-        lambda txt: count_section_entries(
-            txt,
-            2, #2
-            r'3\.\s*PARTICIPACIÓN\s*EN\s*CLUB\s*DEPORTIVO.*?AÑO',
-            r'\*Si el estudiante.*?dejar en blanco\.|\n4\.'
-        )
-    )
-
-    # 3) Nacional (sección 2…NACIONAL…AÑO hasta '*Si el estudiante…' o '\n3.')
-    df['count_national'] = df['cv_text'].apply(
-        lambda txt: count_section_entries(
-            txt,
-            3, #3
-            r'2\.\s*PARTICIPACIÓN\s*EN\s*SELECCIÓN\s*NACIONAL.*?AÑO',
-            r'\*Si el estudiante.*?dejar en blanco\.|\n3\.'
-        )
-    )
-
-    # 4) Torneos Locales (Escolares + Nacionales) — sección 5 hasta sección 6
-    df['local_tournaments'] = df['cv_text'].apply(
-        lambda txt: count_section_entries(
-            text=txt,
-            point_mult=1,  # solo contamos
-            start_pattern=r'5\.\s*PARTICIPACIÓN\s*EN\s*ACTIVIDADES\s*DEPORTIVAS.*?AÑO',
-            end_pattern=r'\*Si el estudiante.*?agregar otra fila\.|\n6\.',
-            max_count=90,
-            # el year_pattern ya por defecto es YearPat
-        )
-    )
-
-    # 5) Torneos Internacionales (Mundiales / Panamericanos / Sudamericanos) — sección 6 hasta sección 7
-    df['international_tournaments'] = df['cv_text'].apply(
-        lambda txt: count_section_entries(
-            text=txt,
             point_mult=1,
-            start_pattern=(
-                r'6\.\s*PARTICIPACIÓN\s*EN[:\s]*'
-                r'MUNDIALES.*?JUEGOS\s*OLÍMPICOS.*?TORNEOS\s*PANAMERICANOS'
-                r'.*?SUDAMERICANOS.*?AÑO'
-            ),
-            end_pattern=r'\*Si el estudiante.*?dejar en blanco\.|\n7\.',
-            max_count=90,
+            max_count=4,
+            start_pattern=r'4\.\s*PARTICIPACIÓN\s*EN\s*SELECCIÓN\s*DEPORTIVA\s*ESCOLAR',
+            end_pattern=r'5\.\s*PARTICIPACIÓN\s*EN\s*ACTIVIDADES\s*DEPORTIVAS'
         )
     )
-    
+
+    # 2) Club deportivo
+    df['count_club'] = df['cv_text'].progress_apply(
+        lambda txt: count_unique_year_lines_per_section(
+            txt,
+            point_mult=2,
+            max_count=4,
+            start_pattern=r'3\.\s*PARTICIPACIÓN\s*EN\s*CLUB',
+            end_pattern=r'4\.\s*PARTICIPACIÓN\s*EN\s*SELECCIÓN\s*DEPORTIVA\s*ESCOLAR'
+        )
+    )
+
+    # 3) Selección nacional
+    df['count_national'] = df['cv_text'].progress_apply(
+        lambda txt: count_unique_year_lines_per_section(
+            txt,
+            point_mult=3,
+            max_count=4,
+            start_pattern=r'2\.\s*PARTICIPACIÓN\s*EN\s*SELECCIÓN\s*NACIONAL',
+            end_pattern=r'3\.\s*PARTICIPACIÓN\s*EN\s*CLUB'
+        )
+    )
+
+    # 4) Torneos locales
+    df['local_tournaments'] = df['cv_text'].progress_apply(
+        lambda txt: count_local_tournaments(
+            txt,
+            start_pattern = r'(?m)^\s*5\.',
+            end_pattern=r'6\.\s*PARTICIPACIÓN'
+        )
+    )
+
+    # 5) Torneos internacionales
+    df['international_tournaments'] = df['cv_text'].progress_apply(
+        lambda txt: count_international_tournaments(
+            txt,
+            start_pattern=r'6\.\s*PARTICIPACIÓN',
+            end_pattern=r'7\.\s*LOGROS|TODAS LAS ACTIVIDADES'
+        )
+    )
+
     # 6) Otros Torneos
     df["other_tournaments"] = df["cv_text"].progress_apply(
         lambda txt: contar_puntaje_other_from_count(
@@ -483,7 +546,7 @@ def main_loop(base_path, output_csv_path):
     df["total_score"] = df[OCRInputFormats.PUNTAJE_COLS.value].sum(axis=1)
 
     # Ordenar por total_score descendente
-    df_sorted = df.sort_values(by="total_score", ascending=False)
+    df_sorted = df.sort_values(by=["total_score", "nem"], ascending=False)
 
     # Eliminar columnas innecesarias antes de exportar
     df_sorted = df_sorted.drop(columns=["cv_text", "error"], errors="ignore")
