@@ -82,9 +82,11 @@
     .form-wrapper {
       display: flex;
       flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 40vh;
+      align-items: center;     
+      justify-content: center; 
+      text-align: center;      
+      margin: 0 auto;          
+      gap: 20px;
     }
 
     .form-group {
@@ -247,6 +249,8 @@
       align-items: center;
       z-index: 9999;
       backdrop-filter: blur(4px);
+      text-align: center;
+      flex-direction: column;
     }
 
     .loading-overlay.show {
@@ -388,7 +392,7 @@
   </div>
 
   <div class="container">
-    <h1>Subir carpeta con PDFs de<br>notas de enseñanza media</h1>
+    <h1>Subir carpeta con PDFs de<br>CVs deportivos y notas de enseñanza media</h1>
 
     <div class="form-wrapper">
       <div class="sports-info">
@@ -406,7 +410,7 @@
       <form id="upload-form" method="post" enctype="multipart/form-data" action="{% url 'upload_pdf_cv' %}">
         {% csrf_token %}
         <div class="form-group">
-          <label for="id_files">Selecciona una carpeta con archivos (PDF):</label>
+          <label for="id_files">Selecciona una carpeta con archivos PDF (Cada pareja de archivos toma entre 5 y 20 segundos en ser procesado):</label>
           <div class="file-upload-area">
             <span class="file-upload-icon">🏃‍♂️</span>
             <input
@@ -443,6 +447,17 @@
     input.addEventListener('change', function () {
       const files = this.files;
       const fileUploadText = document.querySelector('.file-upload-text');
+
+      // Limitar cantidad de archivos
+      if (files.length > 1000) {
+        alert("Solo puedes subir máximo 1000 archivos a la vez, sube por lotes.");
+        this.value = "";  // Limpiar selección
+        fileUploadText.textContent = "No se seleccionaron archivos";
+        fileUploadText.style.color = 'initial';
+        fileUploadText.style.fontWeight = 'normal';
+        return;
+      }
+
       if (files.length > 0) {
         fileUploadText.textContent = `${files.length} archivos seleccionados`;
         fileUploadText.style.color = 'var(--success-green)';

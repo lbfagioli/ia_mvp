@@ -11,6 +11,7 @@ import json
 import statistics
 import google.generativeai as genai
 import os
+import pandas as pd
 
 # === CONFIGURATION ===
 
@@ -112,6 +113,13 @@ def nem(country, grade):
             print(f"[nem]: Country not supported for \"{country}\"")
     return result
 
+# === CSV EXPORT ===
+
+def exportar_resultados_csv(df: pd.DataFrame, output_csv: str):
+    df.to_csv(output_csv, index=False, encoding='utf-8')
+    print(f"\n📄 CSV exportado a: {output_csv}")
+
+
 # === MAIN FLOW (example) ===
 
 
@@ -129,7 +137,7 @@ if __name__ == "__main__":
         grade = four_years_grade(last_four_years)
         calculated_nem = nem(json_text["country"], grade)
 """
-def procesar_pdfs_en_carpeta(input_folder):
+def procesar_pdfs_en_carpeta_internacional(input_folder, output_csv_path):
     all_pdfs = glob.glob(os.path.join(input_folder, '*.pdf'))
     pdf_files_root = [f for f in all_pdfs if os.path.dirname(f) == input_folder]
     pdf_files_all = glob.glob(os.path.join(input_folder, '**', '*.pdf'), recursive=True)
@@ -156,9 +164,9 @@ def procesar_pdfs_en_carpeta(input_folder):
                 logs.append(f"⚠️ País no soportado en: {os.path.basename(pdf_file)}")
                 continue
 
-            rut = os.path.splitext(os.path.basename(pdf_file))[0]  # Asume que el nombre del archivo es el RUT
-            resultados.append([rut, round(calculated_nem, 2)])
-            logs.append(f"✅ {rut} → NEM: {round(calculated_nem, 2)}")
+            filename = os.path.splitext(os.path.basename(pdf_file))[0]
+            resultados.append({"FILE": filename, "GRADE": round(avg_grade, 2), "NEM": round(calculated_nem, 2)})
+            logs.append(f"✅ {filename} → Promedio extranjero: {round(avg_grade, 2)} → NEM: {round(calculated_nem, 2)}")
 
         except Exception as e:
             logs.append(f"❌ Error procesando {os.path.basename(pdf_file)}: {e}")
@@ -166,4 +174,11 @@ def procesar_pdfs_en_carpeta(input_folder):
     if pdf_files_subcarpetas:
         logs.append(f"⚠️ Se ignoraron {len(pdf_files_subcarpetas)} archivos PDF en subcarpetas.")
 
-    return resultados, logs
+    # Crear DataFrame con resultados
+    import pandas as pd
+    df_resultados = pd.DataFrame(resultados)
+
+    # Exportar CSV directamente aquí
+    exportar_resultados_csv(df_resultados, output_csv_path)
+
+    return df_resultados, logs

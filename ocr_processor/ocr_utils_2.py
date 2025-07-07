@@ -13,6 +13,7 @@ from pdf2image import convert_from_path
 from unstructured.partition.pdf import partition_pdf
 from dotenv import load_dotenv
 from .constants import OCRInputFormats
+os.environ["TESSDATA_PREFIX"] = "/usr/share/tesseract-ocr/4.00/tessdata"
 
 tqdm.pandas()
 nltk.download('averaged_perceptron_tagger')
@@ -96,8 +97,7 @@ def process_cv(cv_path):
     except Exception as e:
         print(f"[process_cv] Error con pdfplumber en {cv_path}: {e}")
         return ocr_fallback(cv_path)
-
-
+    
 def ocr_fallback(cv_path):
     """Extrae el texto completo de un CV.pdf. con tesseract"""
     if not cv_path:
@@ -154,15 +154,13 @@ def group_by_rut_and_id(pdf_paths):
 
 def extract_text_pages(pdf_path, first_page_only=False):
     """Partition + agrupa por página, devuelve lista de textos por página."""
-    elems = partition_pdf(pdf_path)
-    pages = {}
-    for el in elems:
-        if first_page_only and el.metadata.page_number != 1:
-            continue
-        pages.setdefault(el.metadata.page_number, "")
-        pages[el.metadata.page_number] += el.text + " "
-    sorted_pages = [pages[p] for p in sorted(pages)]
-    return sorted_pages
+    pages = convert_from_path(pdf_path, dpi=200)
+    if first_page_only:
+        pages = pages[:1]
+    return [
+        pytesseract.image_to_string(page, lang="spa", config="--psm 1")
+        for page in pages
+    ]
 
 def process_notasmedia(notas_path):
     """Extrae rut, grades y calcula NEM a partir de NotasMedia.pdf."""
@@ -565,7 +563,7 @@ def procesar_pdfs_en_carpeta(temp_dir, output_csv_path):
         # Logs de resumen por fila
         logs = []
         for _, row in df.iterrows():
-            log_entry = f"✅ RUT: {row['rut']} - POST: {row['post_id']} - NEM: {row['nem']}"
+            log_entry = f"✅ RUT: {row['rut']} - POST: {row['post_id']} - NEM: {row['nem']} - PUNTAJE: {row['total_score']}"
             logs.append(log_entry)
 
         return df, logs

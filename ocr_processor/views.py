@@ -7,7 +7,7 @@ from django.urls import reverse
 from .forms import UploadPDFForm
 from .ocr_utils import procesar_pdfs_en_carpeta, exportar_resultados_csv
 from .ocr_utils_2 import procesar_pdfs_en_carpeta as procesar_pdfs_en_carpeta_cv
-from .ocr_international import procesar_pdfs_en_carpeta as procesar_pdfs_en_carpeta_internacional
+from .ocr_international import procesar_pdfs_en_carpeta_internacional
 
 from django.http import JsonResponse
 from django.shortcuts import render, redirect
@@ -20,6 +20,16 @@ def upload_pdf(request):
             return render(request, "ocr_processor/resultado_ocr.html", {
                 'error': "No se subieron archivos."
             })
+
+        pdf_files = [a for a in archivos if a.name.lower().endswith('.pdf')]
+        no_pdf_files = [a for a in archivos if not a.name.lower().endswith('.pdf')]
+
+        if not pdf_files:
+            return render(request, "ocr_processor/resultado_ocr.html", {
+                'error': "No se aceptan archivos que no sean PDF."
+            })
+
+        logs = [f"⚠️ Archivo no compatible ignorado: {a.name}" for a in no_pdf_files]
         
         # Crear carpeta temporal para esta sesión de procesamiento
         session_id = uuid.uuid4().hex
@@ -41,7 +51,8 @@ def upload_pdf(request):
         # Procesar PDFs: esta función debe devolver
         # - resultados: dict {nombre_archivo: nem}
         # - logs: lista de strings con mensajes por archivo
-        resultados, logs = procesar_pdfs_en_carpeta(temp_dir)
+        resultados, process_logs = procesar_pdfs_en_carpeta(temp_dir)
+        logs.extend(process_logs)
 
         total_docs = len(pdf_files)
         procesados_ok = len(resultados)
@@ -60,7 +71,7 @@ def upload_pdf(request):
             'procesados_ok': procesados_ok,
             'errores': errores,
             'csv_url': f"/media/ocr_csvs/{output_csv_name}",
-            'logs': logs,
+            'logs': '\n'.join(logs),
         }
 
         # Redirigir a la vista de resultados (GET)
@@ -85,6 +96,16 @@ def upload_pdf_cv(request):
             if not archivos:
                 raise ValueError("No se subieron archivos.")
 
+            pdf_files = [a for a in archivos if a.name.lower().endswith('.pdf')]
+            no_pdf_files = [a for a in archivos if not a.name.lower().endswith('.pdf')]
+
+            if not pdf_files:
+                return render(request, "ocr_processor/resultado_ocr.html", {
+                    'error': "No se aceptan archivos que no sean PDF."
+                })
+
+            logs = [f"⚠️ Archivo no compatible ignorado: {a.name}" for a in no_pdf_files]
+            
             # Carpeta temporal
             sid      = uuid.uuid4().hex
             temp_dir = os.path.join(tempfile.gettempdir(), f"ocr_{sid}")
@@ -105,7 +126,8 @@ def upload_pdf_cv(request):
             os.makedirs(out_dir, exist_ok=True)
             csv_name    = f"ocr_cv_{sid}.csv"
             csv_path    = os.path.join(out_dir, csv_name)
-            df, logs    = procesar_pdfs_en_carpeta_cv(temp_dir, csv_path)
+            df, process_logs = procesar_pdfs_en_carpeta_cv(temp_dir, csv_path)
+            logs.extend(process_logs)
 
             # Guardar en sesión
             request.session['ocr_resultados'] = {
@@ -113,7 +135,7 @@ def upload_pdf_cv(request):
                 'procesados_ok': len(df),
                 'errores':       len(pdfs) - len(df),
                 'csv_url':       f"/media/ocr_csvs/{csv_name}",
-                'logs':          logs,
+                'logs':          '\n'.join(logs),
             }
 
             redirect_url = reverse('resultado_ocr_cv')
@@ -138,6 +160,18 @@ def upload_pdf_internacional(request):
             if not archivos:
                 raise ValueError("No se subieron archivos.")
 
+            pdf_files = [a for a in archivos if a.name.lower().endswith('.pdf')]
+            no_pdf_files = [a for a in archivos if not a.name.lower().endswith('.pdf')]
+
+            if not pdf_files:
+                return render(request, "ocr_processor/resultado_ocr.html", {
+                    'error': "No se aceptan archivos que no sean PDF."
+                })
+            
+            logs = []
+            for archivo in no_pdf_files:
+                logs.append(f"⚠️ Archivo no compatible ignorado: {archivo.name}")
+            
             # Crear carpeta temporal
             sid = uuid.uuid4().hex
             temp_dir = os.path.join(tempfile.gettempdir(), f"ocr_internacional_{sid}")
@@ -156,13 +190,13 @@ def upload_pdf_internacional(request):
                     pdfs.append(a.name)
 
             # Procesar y generar CSV
+
             out_dir = os.path.join("media", "ocr_csvs")
             os.makedirs(out_dir, exist_ok=True)
             csv_name = f"ocr_internacional_{sid}.csv"
             csv_path = os.path.join(out_dir, csv_name)
-
-            resultados, logs = procesar_pdfs_en_carpeta_internacional(temp_dir)
-            exportar_resultados_csv(resultados, csv_path)
+            resultados, procesar_logs = procesar_pdfs_en_carpeta_internacional(temp_dir, csv_path)
+            logs.extend(procesar_logs)
 
             # Guardar en sesión
             request.session['ocr_resultados'] = {
@@ -170,7 +204,7 @@ def upload_pdf_internacional(request):
                 'procesados_ok': len(resultados),
                 'errores':       len(pdfs) - len(resultados),
                 'csv_url':       f"/media/ocr_csvs/{csv_name}",
-                'logs':          logs,
+                'logs':          '\n'.join(logs),
             }
 
             redirect_url = reverse('resultado_ocr_internacional')
