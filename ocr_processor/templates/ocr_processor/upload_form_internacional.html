@@ -322,6 +322,33 @@
       font-size: 0.95rem;
     }
 
+    /* international info card */
+    .international-info {
+      background: linear-gradient(135deg, var(--accent-red), var(--white));
+      border: 1px solid var(--light-red);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin: 2rem 0;
+      text-align: center;
+    }
+
+    .international-info h3 {
+      color: var(--dark-red);
+      margin-bottom: 0.5rem;
+      font-size: 1.2rem;
+    }
+
+    .international-info p {
+      color: var(--text-secondary);
+      margin: 0;
+      font-size: 0.95rem;
+    }
+
+    .international-info a {
+      color: var(--dark-red);
+      text-decoration: underline;
+    }
+
     /* Responsive Design */
     @media (max-width: 768px) {
       .container {
@@ -367,6 +394,16 @@
     <h1>Subir carpeta con certificados de<br>notas extranjeras</h1>
 
     <div class="form-wrapper">
+      <div class="international-info">
+        <h3>🇧🇴 🇵🇦 🇻🇪 Notas Extranjeras</h3>
+        <p>
+          Sube certificados de notas de Bolivia, Panamá o Venezuela para convertirlas a la escala chilena (1 a 7) y obtener el NEM equivalente por certificado.
+          <br>
+          <a href="{% static 'images/convertion.png' %}" target="_blank" rel="noopener noreferrer">
+            Ver fórmulas de conversión.
+          </a>
+        </p>
+      </div>
       <form id="upload-form" method="post" enctype="multipart/form-data">
         {% csrf_token %}
         <div class="form-group">

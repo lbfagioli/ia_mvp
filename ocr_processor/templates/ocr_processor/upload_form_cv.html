@@ -341,6 +341,11 @@
       font-size: 0.95rem;
     }
 
+    .sports-info a {
+      color: var(--dark-red);
+      text-decoration: underline;
+    }
+
     /* Responsive Design */
     @media (max-width: 768px) {
       .container {
@@ -388,7 +393,14 @@
     <div class="form-wrapper">
       <div class="sports-info">
         <h3>🏆 Documentos Deportivos</h3>
-        <p>Sube curriculums deportivos y certificados de notas para evaluación de puntajes</p>
+        <p>
+          Sube currículums deportivos para la universidad y certificados de notas con el mismo RUT para evaluación de puntajes.
+          Puedes subir más de uno para ordenar por puntaje.
+          <br>
+          <a href="{% static 'pdfs/cv_example.pdf' %}" target="_blank" rel="noopener noreferrer">
+            Ver ejemplo de currículum deportivo compatible.
+          </a>
+        </p>
       </div>
 
       <form id="upload-form" method="post" enctype="multipart/form-data" action="{% url 'upload_pdf_cv' %}">

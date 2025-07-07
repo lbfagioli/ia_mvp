@@ -299,6 +299,33 @@
       margin-top: 0.5rem;
     }
 
+    /* nem info card */
+    .nem-info {
+      background: linear-gradient(135deg, var(--accent-red), var(--white));
+      border: 1px solid var(--light-red);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin: 2rem 0;
+      text-align: center;
+    }
+
+    .nem-info h3 {
+      color: var(--dark-red);
+      margin-bottom: 0.5rem;
+      font-size: 1.2rem;
+    }
+
+    .nem-info p {
+      color: var(--text-secondary);
+      margin: 0;
+      font-size: 0.95rem;
+    }
+
+    .nem-info a {
+      color: var(--dark-red);
+      text-decoration: underline;
+    }
+
     /* Responsive Design */
     @media (max-width: 768px) {
       .container {
@@ -338,7 +365,17 @@
     <h1>Subir carpeta con PDFs de<br>notas de enseñanza media</h1>
 
     <div class="form-wrapper">
-      <form id="upload-form" method="post" enctype="multipart/form-data">
+        <div class="nem-info">
+          <h3>📄 Notas de Enseñanza Media</h3>
+          <p>
+            Sube los certificados en PDF emitidos por el 
+            <a href="https://certificados.mineduc.cl/mvc/home/index" target="_blank" rel="noopener noreferrer">
+              Ministerio de Educación en Chile (MINEDUC)
+            </a> 
+            para calcular automáticamente el NEM asociado a cada RUT.
+          </p>
+        </div>      
+        <form id="upload-form" method="post" enctype="multipart/form-data">
         {% csrf_token %}
         <div class="form-group">
           <label for="id_files">Selecciona una carpeta con archivos (PDF):</label>

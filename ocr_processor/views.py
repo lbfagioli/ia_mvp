@@ -1,6 +1,7 @@
 import os
 import tempfile
 import uuid
+import pathlib
 from django.shortcuts import render, redirect
 from django.urls import reverse
 from .forms import UploadPDFForm
@@ -28,9 +29,8 @@ def upload_pdf(request):
         # Guardar PDFs subidos en temp_dir
         pdf_files = []
         for archivo in archivos:
-            if archivo.name.lower().endswith('.pdf'):
-                if '/' in archivo.name or '\\' in archivo.name:
-                    # Está en una subcarpeta, lo ignoramos
+                path_parts = pathlib.PurePath(archivo.name).parts
+                if len(path_parts) > 1:
                     continue
                 file_path = os.path.join(temp_dir, archivo.name)
                 with open(file_path, "wb") as f:

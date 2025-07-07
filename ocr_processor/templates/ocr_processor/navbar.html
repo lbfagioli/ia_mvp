@@ -1,8 +1,10 @@
+{% load static %}
 <header>
   <div class="header-content" style="display: flex; justify-content: space-between; align-items: center;">
     <h2 style="margin: 0;">
-      <a href="{% url 'home' %}" style="color: inherit; text-decoration: none;">
-        UANDES - Procesador OCR IA
+      <a href="{% url 'home' %}" style="color: inherit; text-decoration: none; display: flex; align-items: center; gap: 10px;">
+        <img src="{% static 'images/Logo_uandes_white.png' %}" alt="Logo UANDES" style="height: 100px; width: auto;">
+        <span>Procesador OCR IA</span>
       </a>
     </h2>
     <nav style="display: flex; gap: 10px;">
