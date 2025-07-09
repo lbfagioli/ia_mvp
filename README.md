@@ -38,6 +38,7 @@
    ```bash
    pip install -r requirements.txt
    pip install --upgrade "unstructured[ocr,pdf]"
+   sudo apt-get install tesseract-ocr-spa
    ```
 5. **Correr Servidor**
 - Se recomienda preparar un servidor de Ngrok para hostear y conectar remotamente desde otros equipos
